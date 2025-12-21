@@ -36,7 +36,9 @@ export default function CardGridSection({
             className="group relative overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--card)] p-5 transition duration-200 hover:-translate-y-1 hover:border-[rgba(43,245,199,0.35)] hover:shadow-[var(--shadow-glow)]"
           >
             <span className="mb-3 inline-block text-[12px] uppercase tracking-[0.08em] text-[var(--primary)]">
-              {item.badge ?? item.meta?.tag ?? "—"}
+              {item.badge ??
+                (typeof item.meta?.tag === "string" ? item.meta.tag : undefined) ??
+                "—"}
             </span>
             <h4 className="text-lg font-semibold text-white">{item.title}</h4>
             {item.subtitle && (

@@ -14,13 +14,13 @@ export default function NotFound() {
           Page not found
         </h1>
         <p className="text-[var(--muted)]">
-          The page you’re looking for isn’t published yet.
+          The page you’re looking for isn’t here, but the editorial home is.
         </p>
         <Link
-          href="/about"
+          href="/"
           className="inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.05)] px-4 py-2 text-sm font-semibold text-white transition hover:border-[rgba(255,255,255,0.2)]"
         >
-          Back to About
+          Back home
         </Link>
       </div>
     </div>

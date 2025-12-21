@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import type { SectionType, SectionWithItems } from "@/lib/types";
 import CardGridSection from "./card-grid";
 import FooterLinksSection from "./footer-links";
@@ -5,7 +6,10 @@ import HeroSection from "./hero";
 import ListWithBadgesSection from "./list-with-badges";
 import MiniCardScrollerSection from "./mini-card-scroller";
 
-const componentMap: Record<SectionType, (props: SectionProps) => JSX.Element> =
+const componentMap: Record<
+  SectionType,
+  (props: SectionProps) => ReactElement
+> =
   {
     hero: (props) => <HeroSection {...props} />,
     card_grid: (props) => <CardGridSection {...props} />,

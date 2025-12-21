@@ -11,25 +11,26 @@ export function Markdown({ content, className }: MarkdownProps) {
   if (!content) return null;
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      className={clsx("rich-text", className)}
-      components={{
-        h1: (props) => (
-          <h1 style={{ fontFamily: "var(--font-display)" }} {...props} />
-        ),
-        h2: (props) => (
-          <h2 style={{ fontFamily: "var(--font-display)" }} {...props} />
-        ),
-        h3: (props) => (
-          <h3 style={{ fontFamily: "var(--font-display)" }} {...props} />
-        ),
-        h4: (props) => (
-          <h4 style={{ fontFamily: "var(--font-display)" }} {...props} />
-        ),
-      }}
-    >
-      {content}
-    </ReactMarkdown>
+    <div className={clsx("rich-text", className)}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: (props) => (
+            <h1 style={{ fontFamily: "var(--font-display)" }} {...props} />
+          ),
+          h2: (props) => (
+            <h2 style={{ fontFamily: "var(--font-display)" }} {...props} />
+          ),
+          h3: (props) => (
+            <h3 style={{ fontFamily: "var(--font-display)" }} {...props} />
+          ),
+          h4: (props) => (
+            <h4 style={{ fontFamily: "var(--font-display)" }} {...props} />
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }

@@ -155,3 +155,87 @@ set title = excluded.title,
     cover_label = excluded.cover_label,
     sort_order = excluded.sort_order,
     meta = excluded.meta;
+
+-- Seed chapters from pages
+insert into chapters (id, slug, title, subtitle, description, order_index, published, updated_at)
+select id,
+       slug,
+       title,
+       subtitle,
+       description,
+       sort_order,
+       is_published,
+       updated_at
+from pages
+on conflict (slug) do update
+set title = excluded.title,
+    subtitle = excluded.subtitle,
+    description = excluded.description,
+    order_index = excluded.order_index,
+    published = excluded.published,
+    updated_at = excluded.updated_at;
+
+-- Seed chapter statements from sections
+insert into chapter_items (id, chapter_id, type, title, body, meta, order_index, published, updated_at)
+select s.id,
+       s.page_id,
+       'statement',
+       s.heading,
+       s.body,
+       s.meta,
+       s.sort_order,
+       p.is_published,
+       s.updated_at
+from sections s
+join pages p on p.id = s.page_id
+on conflict (id) do update
+set chapter_id = excluded.chapter_id,
+    type = excluded.type,
+    title = excluded.title,
+    body = excluded.body,
+    meta = excluded.meta,
+    order_index = excluded.order_index,
+    published = excluded.published,
+    updated_at = excluded.updated_at;
+
+-- Seed chapter items from items
+insert into chapter_items (id, chapter_id, type, title, body, url, meta, order_index, published, updated_at)
+select i.id,
+       i.page_id,
+       case
+         when s.type = 'card_grid' and p.slug = 'quick-links' then 'link_tile'
+         when s.type = 'card_grid' and p.slug = 'principles' then 'principle'
+         when s.type = 'card_grid' and p.slug = 'favourite-spots' then 'spot'
+         when s.type = 'card_grid' and p.slug = 'about' then 'timeline_event'
+         when s.type = 'footer_links' then 'link_tile'
+         when s.type = 'mini_card_scroller' then 'repeat_item'
+         when s.type = 'list_with_badges' then 'media_item'
+         else 'statement'
+       end,
+       i.title,
+       i.subtitle,
+       i.url,
+       (jsonb_build_object(
+          'tags', i.tags,
+          'badge', i.badge,
+          'progress', i.progress,
+          'cover_label', i.cover_label,
+          'section_id', i.section_id,
+          'section_type', s.type
+        ) || coalesce(i.meta, '{}'::jsonb)),
+       i.sort_order,
+       p.is_published,
+       now()
+from items i
+join pages p on p.id = i.page_id
+left join sections s on s.id = i.section_id
+on conflict (id) do update
+set chapter_id = excluded.chapter_id,
+    type = excluded.type,
+    title = excluded.title,
+    body = excluded.body,
+    url = excluded.url,
+    meta = excluded.meta,
+    order_index = excluded.order_index,
+    published = excluded.published,
+    updated_at = excluded.updated_at;

@@ -1,7 +1,6 @@
 ## Overview
-- Dark, minimal, high-end Next.js (App Router + TypeScript + Tailwind v4) front-end that renders all page content from Supabase.
-- Left sidebar stays fixed on desktop and collapses on mobile; main area swaps content via client-side routing.
-- Sections map to a handful of templates (hero, card grid, mini card scroller, list with badges, footer links) so content stays structured but editable from the DB.
+- Single editorial-scroll home page at `/` with scroll-snapped chapters, an up-scroll chapter index, and a right-side dot navigator.
+- Content is sourced from Supabase `chapters` and `chapter_items` so the entire page is editable without code.
 
 ## Quickstart
 - Install deps: `npm install`
@@ -15,40 +14,42 @@
 - Run the SQL (schema + RLS + seeds) in order inside Supabase SQL Editor:
   1. `supabase/schema.sql`
   2. `supabase/seed.sql`
-- Start dev server: `npm run dev` then open `http://localhost:3000` (root redirects to `/about`).
+  3. (optional) `supabase/migrations/202501070001_create_chapters.sql` for migrating existing data
+- Start dev server: `npm run dev` then open `http://localhost:3000`.
 
 ## Supabase model
-- `pages`: id (uuid, pk), slug (unique), title, subtitle, description, sort_order, is_published, updated_at.
-- `sections`: id, page_id (fk), type (`hero | card_grid | mini_card_scroller | list_with_badges | footer_links`), heading, body (markdown), sort_order, meta (jsonb), updated_at.
-- `items`: id, page_id (fk), section_id (fk, optional), title, subtitle, url, tags (text[]), badge, progress (int 0–100), cover_label, sort_order, meta (jsonb).
-- RLS: anon can read only when `pages.is_published = true`. Sections/items are readable only if their parent page is published. Everything else is locked down by default.
-
-## Section → component mapping
-- `hero`: uses `meta.kicker`, `meta.cta_primary {label, href}`, `meta.cta_secondary`, `meta.chips[]`; `heading` as title; `body` as lead.
-- `card_grid`: `heading`/`body` for intro; cards come from `items` with `badge` (tag), `title`, `subtitle`.
-- `mini_card_scroller`: horizontal cards from `items` with `cover_label` (or `badge`), `title`, `subtitle`.
-- `list_with_badges`: vertical list from `items` using `badge`, `title`, `subtitle`, `tags[]`, `progress` (0–100).
-- `footer_links`: pills from `items` (`title`, `url`) to mirror the footer chips.
-- `meta.hint` optionally renders the small uppercase label above a section.
+- `chapters`: id (uuid, pk), slug (unique), title, subtitle, description, order_index, published, theme (jsonb), updated_at.
+- `chapter_items`: id, chapter_id (fk), type (`statement | timeline_event | link_tile | principle | repeat_item | media_item | spot`), title, body, url, image_url, meta (jsonb), order_index, published, updated_at.
+- Legacy tables (`pages`, `sections`, `items`) are retained for migration but are no longer used by the UI.
 
 ## Project structure
-- `src/app/layout.tsx` — global fonts (Fraunces + Spline Sans Mono) and metadata.
-- `src/app/(site)/layout.tsx` — persistent sidebar + background FX (noise + glow).
-- `src/app/(site)/[slug]/page.tsx` — dynamic page rendering from Supabase with loading/error/not-found states.
-- `src/components/Sidebar.tsx` — desktop-fixed / mobile-collapsible nav with filtering.
-- `src/components/sections/*` — section templates described above; `SectionRenderer` wires them up.
-- `src/lib/supabase/*` — server/browser clients; `src/lib/queries.ts` pulls pages/sections/items.
-- `supabase/schema.sql` + `supabase/seed.sql` — tables, policies, and placeholder content matching the original HTML.
+- `src/app/page.tsx` — server fetch + layout wrapper for the editorial home.
+- `src/components/home/EditorialHome.tsx` — scroll-snap chapters, chapter index overlay, dot nav, and per-chapter layouts.
+- `src/app/[...slug]/page.tsx` — redirects old routes back to `/`.
+- `src/lib/queries.ts` — Supabase fetch helpers for chapters and chapter items.
+- `supabase/schema.sql` + `supabase/seed.sql` — schema, policies, and placeholder content.
+- `supabase/migrations/202501070001_create_chapters.sql` — creates chapter tables and migrates existing data.
 
-## Styling notes
-- Tailwind utilities plus custom CSS for the hero glass card, glow blob, noise overlay, gradients, and fade-up animation (honors `prefers-reduced-motion`).
-- Typography mirrors the original: Fraunces for display, Spline Sans Mono for body.
-- Buttons, cards, and chips keep the soft borders, subtle glows, and spacing from the single-file version.
+## How to edit content
+- `chapters` controls the chapter order and the editorial headline.
+  - Example (About): set `title = "About Me"`, `subtitle = "Currently Placeholder"`, `description = "Designing thoughtful products and playful tools."`, `order_index = 1`, `published = true`.
+- `chapter_items` controls the body content per chapter. Use `order_index` for ordering and `published` to hide.
 
-## Editing content
-- Update rows in Supabase; UI will reflect changes on next render.
-- Add new pages by inserting into `pages` with a unique slug and published flag, then add sections/items tied to that `page_id`.
-- Use `sort_order` to control both sidebar order and in-page section ordering.
+Chapter examples:
+- About (`slug = about`):
+  - `statement` item for the hero block: `title = "Designing thoughtful products..."`, `body = "A personal corner..."`, `meta = {"kicker":"Currently","chips":["Based in: Anywhere"],"cta_primary":{"label":"Download CV","href":"#"}}`.
+  - `timeline_event` item for highlights: `title = "From place -> purpose"`, `body = "Summarize your origin story."`, `meta = {"badge":"Origin"}`.
+  - `link_tile` item for quick links: `title = "Email"`, `url = "mailto:hello@example.com"`.
+- Quick Links (`slug = quick-links`):
+  - `link_tile` item: `title = "Portfolio"`, `body = "Latest builds and experiments."`, `url = "https://..."`, `meta = {"badge":"Work"}`.
+- Principles (`slug = principles`):
+  - `principle` item: `title = "Default to momentum"`, `body = "Bias for small, high-frequency shipping."`, `meta = {"badge":"▲"}`.
+- On Repeat (`slug = on-repeat`):
+  - `repeat_item` item: `title = "Track Title - Artist"`, `body = "Album or mood note."`, `meta = {"cover_label":"A1"}`.
+- Listening / Reading (`slug = listening`):
+  - `media_item` item: `title = "Episode title - Host"`, `body = "One-line takeaway."`, `meta = {"badge":"EP01","tags":["design","systems"],"progress":55}`.
+- Favourite Spots (`slug = favourite-spots`):
+  - `spot` item: `title = "Studio nook"`, `body = "Quiet mornings, soft light."`, `meta = {"badge":"Work"}`.
 
 ## Scripts
 - `npm run dev` — start locally

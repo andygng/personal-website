@@ -16,6 +16,15 @@
     Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+}
+
+body {
+  scroll-snap-type: y mandatory;
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
@@ -71,6 +80,21 @@ a {
   right: -140px;
   opacity: 0.6;
   animation: float 18s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.chapter-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.chapter-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 15%, var(--chapter-glow), transparent 58%);
+  opacity: 0.9;
+  pointer-events: none;
   z-index: 0;
 }
 
@@ -154,6 +178,9 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {
