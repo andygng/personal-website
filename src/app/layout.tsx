@@ -19,7 +19,7 @@ const splineMono = Spline_Sans_Mono({
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
 
 export const metadata: Metadata = {
-  title: "Emerging Atlas",
+  title: "Anderson Ng",
   description: "Designing thoughtful products and playful tools.",
   metadataBase: siteUrl ? new URL(siteUrl) : undefined,
 };

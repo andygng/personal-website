@@ -1,19 +1,12 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Markdown } from "@/components/Markdown";
 import type { ChapterItem, ChapterWithItems } from "@/lib/types";
 
 type EditorialHomeProps = {
   chapters: ChapterWithItems[];
-};
-
-type HeroMeta = {
-  kicker?: string;
-  chips?: string[];
-  cta_primary?: { label?: string; href?: string };
-  cta_secondary?: { label?: string; href?: string };
 };
 
 type ChapterTheme = {
@@ -23,54 +16,288 @@ type ChapterTheme = {
 
 const chapterThemes: Record<string, ChapterTheme> = {
   about: {
-    glow: "rgba(43, 245, 199, 0.18)",
+    glow: "rgba(43, 245, 199, 0.12)",
     line: "#2bf5c7",
   },
   "quick-links": {
-    glow: "rgba(255, 124, 107, 0.18)",
+    glow: "rgba(255, 124, 107, 0.12)",
     line: "#ff7c6b",
   },
   principles: {
-    glow: "rgba(244, 208, 111, 0.2)",
+    glow: "rgba(244, 208, 111, 0.12)",
     line: "#f4d06f",
   },
   "on-repeat": {
-    glow: "rgba(92, 200, 255, 0.2)",
+    glow: "rgba(92, 200, 255, 0.12)",
     line: "#5cc8ff",
   },
   listening: {
-    glow: "rgba(111, 224, 161, 0.18)",
+    glow: "rgba(111, 224, 161, 0.12)",
     line: "#6fe0a1",
   },
   "favourite-spots": {
-    glow: "rgba(255, 205, 125, 0.2)",
+    glow: "rgba(255, 205, 125, 0.12)",
     line: "#ffcd7d",
   },
 };
 
 const defaultTheme: ChapterTheme = {
   glow: "rgba(255, 255, 255, 0.08)",
-  line: "rgba(255, 255, 255, 0.35)",
+  line: "rgba(255, 255, 255, 0.4)",
 };
 
-const sortByOrder = (a: ChapterItem, b: ChapterItem) =>
-  (a.order_index ?? 0) - (b.order_index ?? 0);
+const layoutBySlug: Record<string, string> = {
+  about: "lg:grid-cols-[1.1fr_0.9fr] items-start",
+  "quick-links": "lg:grid-cols-[0.9fr_1.1fr] items-start",
+  principles: "lg:grid-cols-[1fr_1fr] items-center",
+  "on-repeat": "lg:grid-cols-[0.8fr_1.2fr] items-start",
+  listening: "lg:grid-cols-[1fr_1fr] items-start",
+  "favourite-spots": "lg:grid-cols-[1fr_1fr] items-start",
+};
 
-const getMeta = (item: ChapterItem) =>
-  (item.meta ?? {}) as Record<string, unknown>;
+const sortItems = (items: ChapterItem[]) =>
+  items
+    .filter((item) => item.published !== false)
+    .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
 
-const getString = (value: unknown) =>
-  typeof value === "string" ? value : undefined;
+const isLinkTile = (item: ChapterItem) => item.type === "link_tile";
 
-const getNumber = (value: unknown) =>
-  typeof value === "number" ? value : undefined;
+const getSectionType = (item: ChapterItem) => {
+  if (!item.meta || typeof item.meta !== "object") {
+    return undefined;
+  }
+  const value = (item.meta as Record<string, unknown>).section_type;
+  return typeof value === "string" ? value : undefined;
+};
 
-const getStringArray = (value: unknown) =>
-  Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+type SpotFilters = {
+  cities: string[];
+  types: string[];
+};
+
+const getStringValue = (value: unknown) =>
+  typeof value === "string" ? value.trim() : undefined;
+
+const getStringList = (value: unknown) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+    .filter((entry) => entry.length > 0);
+};
+
+const getSpotMeta = (item: ChapterItem) => {
+  if (!item.meta || typeof item.meta !== "object") {
+    return { city: undefined, placeType: undefined };
+  }
+
+  const meta = item.meta as Record<string, unknown>;
+  const city =
+    getStringValue(meta.city) ??
+    getStringValue(meta.location) ??
+    getStringValue(meta.town);
+  const placeType =
+    getStringValue(meta.place_type) ??
+    getStringValue(meta.placeType) ??
+    getStringValue(meta.type) ??
+    getStringValue(meta.category);
+
+  return { city, placeType };
+};
+
+const getSpotFilters = (
+  theme?: Record<string, unknown> | null,
+): SpotFilters => {
+  if (!theme || typeof theme !== "object") {
+    return { cities: [], types: [] };
+  }
+
+  const themeRecord = theme as Record<string, unknown>;
+  const filters = themeRecord.spots_filters ?? themeRecord.filters;
+
+  if (!filters || typeof filters !== "object") {
+    return { cities: [], types: [] };
+  }
+
+  const filterRecord = filters as Record<string, unknown>;
+
+  return {
+    cities: getStringList(filterRecord.cities),
+    types: getStringList(filterRecord.types),
+  };
+};
+
+const uniqueValues = (values: Array<string | undefined>) => {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  values.forEach((value) => {
+    if (!value) return;
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(trimmed);
+  });
+
+  return result;
+};
+
+const normalizeFilter = (value: string) => value.trim().toLowerCase();
+
+const buildSpotMarkdown = (items: ChapterItem[]) => {
+  if (!items.length) {
+    return "_No spots match these filters yet._";
+  }
+
+  return items
+    .map((item) => {
+      const title = item.title?.trim() || "Untitled";
+      const { city, placeType } = getSpotMeta(item);
+      const details = [city, placeType].filter(Boolean).join(" / ");
+      const detailsSuffix = details ? ` - _${details}_` : "";
+
+      if (item.url) {
+        return `- [${title}](${item.url})${detailsSuffix}`;
+      }
+
+      return `- ${title}${detailsSuffix}`;
+    })
+    .join("\n");
+};
+
+type FavouriteSpotsPanelProps = {
+  items: ChapterItem[];
+  theme?: Record<string, unknown> | null;
+};
+
+function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
+  const spotItems = useMemo(
+    () => items.filter((item) => item.title || item.url),
+    [items],
+  );
+
+  const { cities: themeCities, types: themeTypes } = useMemo(
+    () => getSpotFilters(theme),
+    [theme],
+  );
+
+  const derivedCities = useMemo(
+    () => uniqueValues(spotItems.map((item) => getSpotMeta(item).city)),
+    [spotItems],
+  );
+  const derivedTypes = useMemo(
+    () => uniqueValues(spotItems.map((item) => getSpotMeta(item).placeType)),
+    [spotItems],
+  );
+
+  const cities = themeCities.length ? themeCities : derivedCities;
+  const types = themeTypes.length ? themeTypes : derivedTypes;
+
+  const [activeCity, setActiveCity] = useState("all");
+  const [activeType, setActiveType] = useState("all");
+
+  useEffect(() => {
+    if (
+      activeCity !== "all" &&
+      !cities.some((city) => normalizeFilter(city) === normalizeFilter(activeCity))
+    ) {
+      setActiveCity("all");
+    }
+  }, [activeCity, cities]);
+
+  useEffect(() => {
+    if (
+      activeType !== "all" &&
+      !types.some((type) => normalizeFilter(type) === normalizeFilter(activeType))
+    ) {
+      setActiveType("all");
+    }
+  }, [activeType, types]);
+
+  const filteredItems = useMemo(() => {
+    return spotItems.filter((item) => {
+      const { city, placeType } = getSpotMeta(item);
+      const matchesCity =
+        activeCity === "all" ||
+        (city && normalizeFilter(city) === normalizeFilter(activeCity));
+      const matchesType =
+        activeType === "all" ||
+        (placeType &&
+          normalizeFilter(placeType) === normalizeFilter(activeType));
+
+      return matchesCity && matchesType;
+    });
+  }, [activeCity, activeType, spotItems]);
+
+  const listMarkdown = useMemo(
+    () => buildSpotMarkdown(filteredItems),
+    [filteredItems],
+  );
+
+  return (
+    <div className="rounded-3xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+            Filter spots
+          </p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            {filteredItems.length} of {spotItems.length} places
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.3em] text-[var(--muted)]">
+            City
+            <select
+              value={activeCity}
+              onChange={(event) => setActiveCity(event.target.value)}
+              className="min-w-[160px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-sm text-white"
+            >
+              <option value="all">All cities</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.3em] text-[var(--muted)]">
+            Type
+            <select
+              value={activeType}
+              onChange={(event) => setActiveType(event.target.value)}
+              className="min-w-[160px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-sm text-white"
+            >
+              <option value="all">All types</option>
+              {types.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="spot-scroll mt-4 max-h-[58vh] overflow-y-auto py-2 pr-3">
+        <Markdown content={listMarkdown} className="spot-list text-sm" />
+      </div>
+    </div>
+  );
+}
 
 export default function EditorialHome({ chapters }: EditorialHomeProps) {
+  const quickLinksChapter = chapters.find(
+    (chapter) => chapter.slug === "quick-links",
+  );
+  const aboutChapter = chapters.find((chapter) => chapter.slug === "about");
+  const shouldMergeQuickLinks = Boolean(quickLinksChapter && aboutChapter);
+  const displayChapters = shouldMergeQuickLinks
+    ? chapters.filter((chapter) => chapter.slug !== "quick-links")
+    : chapters;
   const [activeChapter, setActiveChapter] = useState(
-    chapters[0]?.slug ?? "",
+    displayChapters[0]?.slug ?? "",
   );
   const [showIndex, setShowIndex] = useState(false);
   const lastScrollY = useRef(0);
@@ -140,7 +367,134 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     }
   };
 
-  if (!chapters.length) {
+  const renderItemList = (
+    items: ChapterItem[],
+    options?: { allowDetails?: boolean; linkEntireItem?: boolean },
+  ) => {
+    const allowDetails = options?.allowDetails ?? true;
+    const linkEntireItem = options?.linkEntireItem ?? false;
+
+    return (
+      <div className="space-y-3">
+        {items.map((item, itemIndex) => {
+          const body = item.body;
+          const hasDetails = allowDetails && Boolean(body || item.url);
+          const title = item.title ?? "Untitled";
+
+          if (linkEntireItem) {
+            const href = item.url ?? "";
+            const isExternal = href.startsWith("http");
+            const content = (
+              <>
+                <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+                  {String(itemIndex + 1).padStart(2, "0")}
+                </span>
+                <span className="flex-1 text-base font-semibold text-white">
+                  {title}
+                </span>
+              </>
+            );
+
+            if (href) {
+              return (
+                <a
+                  key={item.id}
+                  href={href}
+                  className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4 transition hover:border-[rgba(255,255,255,0.35)]"
+                  target={isExternal ? "_blank" : undefined}
+                  rel={isExternal ? "noreferrer" : undefined}
+                >
+                  {content}
+                </a>
+              );
+            }
+
+            return (
+              <div
+                key={item.id}
+                className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4"
+              >
+                {content}
+              </div>
+            );
+          }
+
+          if (!hasDetails) {
+            return (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4"
+              >
+                <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+                  {String(itemIndex + 1).padStart(2, "0")}
+                </span>
+                <span className="text-base font-semibold text-white">
+                  {title}
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <details
+              key={item.id}
+              className="group rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4"
+            >
+              <summary className="flex cursor-pointer items-center justify-between gap-4 py-4">
+                <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+                  {String(itemIndex + 1).padStart(2, "0")}
+                </span>
+                <span className="flex-1 text-base font-semibold text-white">
+                  {title}
+                </span>
+                <span className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)] transition group-open:text-white">
+                  View
+                </span>
+              </summary>
+              <div className="pb-4 pr-6 pl-8 text-[14px] text-[var(--muted)]">
+                {body && <Markdown content={body} className="text-sm" />}
+                {item.url && (
+                  <a
+                    href={item.url}
+                    className="mt-3 inline-flex text-[11px] uppercase tracking-[0.28em] text-white"
+                  >
+                    Open link
+                  </a>
+                )}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderLinkBubbles = (items: ChapterItem[]) => {
+    if (items.length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-3">
+        {items.map((item) => {
+          const href = item.url ?? "#";
+          const isExternal = href.startsWith("http");
+
+          return (
+            <a
+              key={item.id}
+              href={href}
+              className="bubble-link rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white transition hover:border-[rgba(255,255,255,0.35)]"
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noreferrer" : undefined}
+            >
+              {item.title ?? "Link"}
+            </a>
+          );
+        })}
+      </div>
+    );
+  };
+
+  if (!displayChapters.length) {
     return (
       <div className="flex min-h-screen items-center justify-center px-6">
         <div className="rounded-3xl border border-[var(--border)] bg-[rgba(255,255,255,0.04)] px-8 py-10 text-center shadow-[0_30px_80px_rgba(0,0,0,0.4)]">
@@ -165,33 +519,52 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     <div className="relative">
       <div
         className={clsx(
-          "fixed top-6 left-1/2 z-20 w-[min(92vw,740px)] -translate-x-1/2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.72)] px-4 py-2 text-xs uppercase tracking-[0.24em] text-[var(--muted)] backdrop-blur transition duration-300",
+          "fixed top-6 left-1/2 z-20 w-[min(92vw,680px)] -translate-x-1/2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.72)] px-4 py-2 text-[10px] uppercase tracking-[0.32em] text-[var(--muted)] backdrop-blur transition duration-300",
           showIndex
             ? "pointer-events-auto opacity-100 translate-y-0"
             : "pointer-events-none opacity-0 -translate-y-3",
         )}
       >
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {chapters.map((chapter) => (
+        <div className="no-scrollbar flex items-center justify-start gap-3 overflow-x-auto px-2">
+          {displayChapters.map((chapter, index) => (
             <button
               key={chapter.id}
               type="button"
               onClick={() => scrollToChapter(chapter.slug)}
               className={clsx(
-                "rounded-full border border-transparent px-3 py-1 text-[10px] font-semibold tracking-[0.32em] transition",
+                "bubble-link group flex shrink-0 items-center gap-2 rounded-full border border-transparent px-3 py-1 transition",
                 activeChapter === chapter.slug
-                  ? "border-[rgba(255,255,255,0.25)] text-white"
-                  : "text-[var(--muted)] hover:text-white",
+                  ? "border-[rgba(255,255,255,0.25)]"
+                  : "hover:border-[rgba(255,255,255,0.2)]",
               )}
             >
-              {chapter.title}
+              <span
+                className={clsx(
+                  "text-[10px] font-semibold tracking-[0.32em]",
+                  activeChapter === chapter.slug
+                    ? "text-white"
+                    : "text-[var(--muted)] group-hover:text-white",
+                )}
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span
+                className={clsx(
+                  "whitespace-nowrap text-[9px] font-normal tracking-[0.16em] normal-case",
+                  activeChapter === chapter.slug
+                    ? "text-[rgba(255,255,255,0.7)]"
+                    : "text-[rgba(255,255,255,0.45)] group-hover:text-[rgba(255,255,255,0.7)]",
+                )}
+              >
+                {chapter.title}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
       <div className="fixed right-5 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3">
-        {chapters.map((chapter) => (
+        {displayChapters.map((chapter) => (
           <button
             key={chapter.slug}
             type="button"
@@ -215,651 +588,129 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
       </div>
 
       <main className="relative z-10">
-        {chapters.map((chapter, index) => {
+        {displayChapters.map((chapter, index) => {
           const theme = chapterThemes[chapter.slug] ?? defaultTheme;
-          const items = (chapter.items ?? []).filter(
-            (item) => item.published !== false,
-          );
-          const statementItems = items
-            .filter((item) => item.type === "statement")
-            .sort(sortByOrder);
-          const introItem = statementItems[0];
+          const items = sortItems(chapter.items ?? []);
+          const subheader = chapter.description ?? chapter.subtitle;
+          const layout =
+            layoutBySlug[chapter.slug] ?? "lg:grid-cols-[1fr_1fr]";
+          const nextChapter =
+            displayChapters[index + 1] ?? displayChapters[0] ?? chapter;
+          const isLast = index === displayChapters.length - 1;
+          const isMergedAbout =
+            shouldMergeQuickLinks && chapter.slug === "about";
+          const isAbout = chapter.slug === "about";
+          const isPrinciples = chapter.slug === "principles";
+          const isOnRepeat = chapter.slug === "on-repeat";
+          const allowDetails = !(isAbout || isPrinciples || isOnRepeat);
+          const isFavouriteSpots = chapter.slug === "favourite-spots";
+          const linkTileItems = isAbout
+            ? items.filter((item) => isLinkTile(item) && item.url)
+            : [];
+          const timelineItems = isAbout
+            ? items.filter((item) => !isLinkTile(item))
+            : items;
+          let backgroundItems = timelineItems;
+          let linkItems: ChapterItem[] = [];
 
-          const nextChapter = chapters[index + 1] ?? chapters[0] ?? chapter;
-          const isLast = index === chapters.length - 1;
+          if (isMergedAbout) {
+            const sectionBasedItems = timelineItems.filter((item) => {
+              const sectionType = getSectionType(item);
+              return sectionType && sectionType !== "footer_links" && !item.url;
+            });
+            const nonLinkItems = timelineItems.filter((item) => !item.url);
+            backgroundItems = sectionBasedItems.length
+              ? sectionBasedItems
+              : nonLinkItems.length
+                ? nonLinkItems
+                : timelineItems;
+
+            const quickLinkItems = sortItems(
+              quickLinksChapter?.items ?? [],
+            ).filter((item) => item.url);
+            linkItems = [...quickLinkItems, ...linkTileItems];
+            if (linkItems.length === 0) {
+              linkItems = timelineItems.filter((item) => item.url);
+            }
+          }
 
           return (
             <section
               key={chapter.id}
               id={chapter.slug}
               data-chapter={chapter.slug}
-              className="chapter-shell snap-start px-6 py-16 sm:px-10 lg:px-16"
+              className="chapter-shell snap-start flex min-h-[100svh] items-center px-6 py-12 sm:px-10 lg:px-16"
               style={{
                 "--chapter-glow": theme.glow,
                 "--chapter-line": theme.line,
               } as CSSProperties}
             >
-              <div className="relative z-10 mx-auto flex min-h-[90vh] w-full max-w-6xl flex-col justify-center">
-                {chapter.slug === "about" ? (
-                  <AboutChapter
-                    chapter={chapter}
-                    index={index}
-                    introItem={introItem}
-                    items={items}
-                  />
-                ) : chapter.slug === "quick-links" ? (
-                  <QuickLinksChapter
-                    chapter={chapter}
-                    index={index}
-                    introItem={introItem}
-                    items={items}
-                  />
-                ) : chapter.slug === "principles" ? (
-                  <PrinciplesChapter
-                    chapter={chapter}
-                    index={index}
-                    introItem={introItem}
-                    items={items}
-                  />
-                ) : chapter.slug === "on-repeat" ? (
-                  <OnRepeatChapter
-                    chapter={chapter}
-                    index={index}
-                    introItem={introItem}
-                    items={items}
-                  />
-                ) : chapter.slug === "listening" ? (
-                  <ListeningChapter
-                    chapter={chapter}
-                    index={index}
-                    introItem={introItem}
-                    items={items}
-                  />
-                ) : (
-                  <SpotsChapter
-                    chapter={chapter}
-                    index={index}
-                    introItem={introItem}
-                    items={items}
-                  />
-                )}
-
-                <div className="mt-10 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
-                  <span>Chapter {String(index + 1).padStart(2, "0")}</span>
-                  <button
-                    type="button"
-                    onClick={() => scrollToChapter(nextChapter.slug)}
-                    className="group inline-flex items-center gap-3 rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-[10px] font-semibold text-white transition hover:border-[rgba(255,255,255,0.35)]"
+              <div className={clsx("mx-auto w-full max-w-6xl", "grid gap-10 lg:gap-16", layout)}>
+                <div className="flex min-h-[70vh] flex-col justify-center space-y-6">
+                  <div
+                    className="text-[clamp(2.4rem,5vw,4.4rem)] font-semibold text-[var(--chapter-line)]"
+                    style={{ fontFamily: "var(--font-display)" }}
                   >
-                    {isLast ? "Back to start" : "Next chapter"}
-                    <span className="text-[9px] text-[var(--muted)]">
-                      {nextChapter.title}
-                    </span>
-                  </button>
+                    {String(index + 1).padStart(2, "0")}
+                  </div>
+                  <h2
+                    className="text-[clamp(2.2rem,5vw,4rem)] font-semibold leading-tight text-white"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {chapter.title}
+                  </h2>
+                  {subheader && (
+                    <p className="max-w-xl text-[15px] text-[var(--muted)] md:text-[17px]">
+                      {subheader}
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  className={clsx(
+                    "flex min-h-[70vh] flex-col",
+                    isFavouriteSpots ? "justify-start" : "justify-center",
+                  )}
+                >
+                  {isMergedAbout ? (
+                    <div className="space-y-6">
+                      {renderItemList(backgroundItems, { allowDetails })}
+                      {renderLinkBubbles(linkItems)}
+                    </div>
+                  ) : isFavouriteSpots ? (
+                    <FavouriteSpotsPanel items={items} theme={chapter.theme} />
+                  ) : (
+                    <div className="space-y-6">
+                      {renderItemList(timelineItems, {
+                        allowDetails,
+                        linkEntireItem: isOnRepeat,
+                      })}
+                      {isAbout && renderLinkBubbles(linkTileItems)}
+                    </div>
+                  )}
+
+                  <div className="mt-8 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+                    <span>Chapter {String(index + 1).padStart(2, "0")}</span>
+                    <button
+                      type="button"
+                      onClick={() => scrollToChapter(nextChapter.slug)}
+                      className={clsx(
+                        "group inline-flex items-center gap-3 rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-[10px] font-semibold text-white transition hover:border-[rgba(255,255,255,0.35)]",
+                        !isPrinciples && "bubble-link",
+                      )}
+                    >
+                      {isLast ? "Back to start" : "Next chapter"}
+                      <span className="text-[9px] text-[var(--muted)]">
+                        {nextChapter.title}
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
           );
         })}
       </main>
-    </div>
-  );
-}
-
-function ChapterHeading({
-  title,
-  subtitle,
-  description,
-  index,
-}: {
-  title: string;
-  subtitle?: string | null;
-  description?: string | null;
-  index: number;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.36em] text-[var(--muted)]">
-        <span>{subtitle ?? "Chapter"}</span>
-        <span className="h-px w-10 bg-[var(--chapter-line)]" />
-        <span>{String(index + 1).padStart(2, "0")}</span>
-      </div>
-      <h2
-        className="text-[clamp(2.4rem,6vw,4.4rem)] font-semibold leading-[1.05] text-white"
-        style={{ fontFamily: "var(--font-display)" }}
-      >
-        {title}
-      </h2>
-      {description && (
-        <p className="max-w-2xl text-[15px] text-[var(--muted)] md:text-[17px]">
-          {description}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function AboutChapter({
-  chapter,
-  index,
-  introItem,
-  items,
-}: {
-  chapter: ChapterWithItems;
-  index: number;
-  introItem?: ChapterItem;
-  items: ChapterItem[];
-}) {
-  const heroMeta = (introItem?.meta ?? {}) as HeroMeta;
-  const chips = Array.isArray(heroMeta.chips) ? heroMeta.chips : [];
-
-  const highlights = items
-    .filter((item) => item.type === "timeline_event")
-    .sort(sortByOrder);
-
-  const links = items
-    .filter((item) => item.type === "link_tile")
-    .sort(sortByOrder);
-
-  return (
-    <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="space-y-8">
-        <ChapterHeading
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          description={chapter.description}
-          index={index}
-        />
-
-        {introItem && (
-          <div className="rounded-[28px] border border-[var(--border)] bg-[rgba(255,255,255,0.04)] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
-            <div className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
-              {heroMeta.kicker ?? "Editorial note"}
-            </div>
-            {introItem.title && (
-              <h3
-                className="mt-4 text-2xl font-semibold text-white"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                {introItem.title}
-              </h3>
-            )}
-            <Markdown content={introItem.body} className="mt-3 text-[15px]" />
-
-            {chips.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {chips.map((chip) => (
-                  <span
-                    key={chip}
-                    className="rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.05)] px-3 py-1 text-[11px] text-[var(--muted)]"
-                  >
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              {heroMeta.cta_primary?.label && (
-                <a
-                  href={heroMeta.cta_primary.href || "#"}
-                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.1)] bg-gradient-to-r from-[var(--primary)] to-[#78ffd8] px-4 py-2 text-xs font-semibold text-[#062017] transition hover:-translate-y-[2px]"
-                >
-                  {heroMeta.cta_primary.label}
-                </a>
-              )}
-              {heroMeta.cta_secondary?.label && (
-                <a
-                  href={heroMeta.cta_secondary.href || "#"}
-                  className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-[2px]"
-                >
-                  {heroMeta.cta_secondary.label}
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          {highlights.map((item) => {
-            const meta = getMeta(item);
-            const badge = getString(meta.badge) ?? "Highlight";
-
-            return (
-              <article
-                key={item.id}
-                className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5"
-              >
-                <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--chapter-line)]">
-                  {badge}
-                </div>
-                {item.title && (
-                  <h4
-                    className="mt-3 text-lg font-semibold text-white"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {item.title}
-                  </h4>
-                )}
-                {item.body && (
-                  <p className="mt-2 text-[13px] text-[var(--muted)]">
-                    {item.body}
-                  </p>
-                )}
-              </article>
-            );
-          })}
-        </div>
-
-        {links.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {links.map((item) => (
-              <a
-                key={item.id}
-                href={item.url ?? "#"}
-                className="rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-[11px] uppercase tracking-[0.2em] text-white transition hover:border-[rgba(255,255,255,0.35)]"
-              >
-                {item.title ?? "Link"}
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function QuickLinksChapter({
-  chapter,
-  index,
-  introItem,
-  items,
-}: {
-  chapter: ChapterWithItems;
-  index: number;
-  introItem?: ChapterItem;
-  items: ChapterItem[];
-}) {
-  const linkItems = items
-    .filter((item) => item.type === "link_tile")
-    .sort(sortByOrder);
-
-  return (
-    <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-      <div className="space-y-6">
-        <ChapterHeading
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          description={chapter.description}
-          index={index}
-        />
-        {(introItem?.title || introItem?.body) && (
-          <div className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5">
-            {introItem?.title && (
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {introItem.title}
-              </div>
-            )}
-            <Markdown content={introItem.body} className="text-[15px]" />
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {linkItems.map((item) => {
-          const meta = getMeta(item);
-          const badge = getString(meta.badge);
-          const href = item.url ?? "#";
-          const isExternal = href.startsWith("http");
-
-          return (
-            <a
-              key={item.id}
-              href={href}
-              target={isExternal ? "_blank" : undefined}
-              rel={isExternal ? "noreferrer" : undefined}
-              className="group rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5 transition hover:-translate-y-1 hover:border-[rgba(255,255,255,0.4)]"
-            >
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-[var(--muted)]">
-                <span>{badge ?? "Link"}</span>
-                <span className="text-[var(--chapter-line)]">Open</span>
-              </div>
-              {item.title && (
-                <h4
-                  className="mt-4 text-lg font-semibold text-white"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {item.title}
-                </h4>
-              )}
-              {item.body && (
-                <p className="mt-2 text-[13px] text-[var(--muted)]">
-                  {item.body}
-                </p>
-              )}
-            </a>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function PrinciplesChapter({
-  chapter,
-  index,
-  introItem,
-  items,
-}: {
-  chapter: ChapterWithItems;
-  index: number;
-  introItem?: ChapterItem;
-  items: ChapterItem[];
-}) {
-  const principleItems = items
-    .filter((item) => item.type === "principle")
-    .sort(sortByOrder);
-
-  return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_1.1fr]">
-      <div className="space-y-6">
-        <ChapterHeading
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          description={chapter.description}
-          index={index}
-        />
-        {(introItem?.title || introItem?.body) && (
-          <div className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5">
-            {introItem?.title && (
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {introItem.title}
-              </div>
-            )}
-            <Markdown content={introItem.body} className="text-[15px]" />
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {principleItems.map((item, itemIndex) => {
-          const meta = getMeta(item);
-          const badge = getString(meta.badge) ??
-            String(itemIndex + 1).padStart(2, "0");
-
-          return (
-            <article
-              key={item.id}
-              className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5"
-            >
-              <div className="flex items-start gap-4">
-                <div className="rounded-full border border-[rgba(255,255,255,0.2)] px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-[var(--chapter-line)]">
-                  {badge}
-                </div>
-                <div>
-                  {item.title && (
-                    <h4
-                      className="text-lg font-semibold text-white"
-                      style={{ fontFamily: "var(--font-display)" }}
-                    >
-                      {item.title}
-                    </h4>
-                  )}
-                  {item.body && (
-                    <p className="mt-2 text-[13px] text-[var(--muted)]">
-                      {item.body}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function OnRepeatChapter({
-  chapter,
-  index,
-  introItem,
-  items,
-}: {
-  chapter: ChapterWithItems;
-  index: number;
-  introItem?: ChapterItem;
-  items: ChapterItem[];
-}) {
-  const repeatItems = items
-    .filter((item) => item.type === "repeat_item")
-    .sort(sortByOrder);
-
-  return (
-    <div className="space-y-10">
-      <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
-        <div className="space-y-6">
-          <ChapterHeading
-            title={chapter.title}
-            subtitle={chapter.subtitle}
-            description={chapter.description}
-            index={index}
-          />
-        </div>
-        {(introItem?.title || introItem?.body) && (
-          <div className="rounded-[24px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-6">
-            {introItem?.title && (
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {introItem.title}
-              </div>
-            )}
-            <Markdown content={introItem.body} className="text-[15px]" />
-          </div>
-        )}
-      </div>
-
-      <div className="grid auto-cols-[minmax(220px,1fr)] grid-flow-col gap-4 overflow-x-auto pb-4">
-        {repeatItems.map((item) => {
-          const meta = getMeta(item);
-          const coverLabel = getString(meta.cover_label) ??
-            getString(meta.badge) ??
-            "SIDE";
-
-          return (
-            <article
-              key={item.id}
-              className="rounded-[24px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5"
-            >
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.26em] text-[var(--muted)]">
-                <span>{coverLabel}</span>
-                <span className="text-[var(--chapter-line)]">Loop</span>
-              </div>
-              {item.title && (
-                <h4
-                  className="mt-6 text-lg font-semibold text-white"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {item.title}
-                </h4>
-              )}
-              {item.body && (
-                <p className="mt-2 text-[13px] text-[var(--muted)]">
-                  {item.body}
-                </p>
-              )}
-            </article>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ListeningChapter({
-  chapter,
-  index,
-  introItem,
-  items,
-}: {
-  chapter: ChapterWithItems;
-  index: number;
-  introItem?: ChapterItem;
-  items: ChapterItem[];
-}) {
-  const mediaItems = items
-    .filter((item) => item.type === "media_item")
-    .sort(sortByOrder);
-
-  return (
-    <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
-      <div className="space-y-6">
-        <ChapterHeading
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          description={chapter.description}
-          index={index}
-        />
-        {(introItem?.title || introItem?.body) && (
-          <div className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5">
-            {introItem?.title && (
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {introItem.title}
-              </div>
-            )}
-            <Markdown content={introItem.body} className="text-[15px]" />
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {mediaItems.map((item) => {
-          const meta = getMeta(item);
-          const badge = getString(meta.badge) ?? "NOW";
-          const progress = getNumber(meta.progress);
-          const tags = getStringArray(meta.tags);
-
-          return (
-            <article
-              key={item.id}
-              className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5"
-            >
-              <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                <span>{badge}</span>
-                {typeof progress === "number" && (
-                  <span>{Math.min(Math.max(progress, 0), 100)}%</span>
-                )}
-              </div>
-              {item.title && (
-                <h4
-                  className="mt-3 text-lg font-semibold text-white"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {item.title}
-                </h4>
-              )}
-              {item.body && (
-                <p className="mt-2 text-[13px] text-[var(--muted)]">
-                  {item.body}
-                </p>
-              )}
-              {tags.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.04)] px-3 py-1 text-[11px] text-[var(--muted)]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {typeof progress === "number" && (
-                <div className="mt-4 h-1.5 w-full rounded-full bg-[rgba(255,255,255,0.08)]">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--primary)]"
-                    style={{
-                      width: `${Math.min(Math.max(progress, 0), 100)}%`,
-                    }}
-                  />
-                </div>
-              )}
-            </article>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function SpotsChapter({
-  chapter,
-  index,
-  introItem,
-  items,
-}: {
-  chapter: ChapterWithItems;
-  index: number;
-  introItem?: ChapterItem;
-  items: ChapterItem[];
-}) {
-  const spotItems = items
-    .filter((item) => item.type === "spot")
-    .sort(sortByOrder);
-
-  return (
-    <div className="grid gap-10 lg:grid-cols-[1fr_1fr]">
-      <div className="space-y-6">
-        <ChapterHeading
-          title={chapter.title}
-          subtitle={chapter.subtitle}
-          description={chapter.description}
-          index={index}
-        />
-        {(introItem?.title || introItem?.body) && (
-          <div className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5">
-            {introItem?.title && (
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--muted)]">
-                {introItem.title}
-              </div>
-            )}
-            <Markdown content={introItem.body} className="text-[15px]" />
-          </div>
-        )}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {spotItems.map((item) => {
-          const meta = getMeta(item);
-          const badge = getString(meta.badge) ?? "Spot";
-
-          return (
-            <article
-              key={item.id}
-              className="rounded-[22px] border border-[var(--border)] bg-[rgba(255,255,255,0.03)] p-5"
-            >
-              <div className="text-[11px] uppercase tracking-[0.24em] text-[var(--chapter-line)]">
-                {badge}
-              </div>
-              {item.title && (
-                <h4
-                  className="mt-4 text-lg font-semibold text-white"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {item.title}
-                </h4>
-              )}
-              {item.body && (
-                <p className="mt-2 text-[13px] text-[var(--muted)]">
-                  {item.body}
-                </p>
-              )}
-            </article>
-          );
-        })}
-      </div>
     </div>
   );
 }

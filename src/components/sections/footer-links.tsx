@@ -34,7 +34,7 @@ export default function FooterLinksSection({
               <Link
                 key={item.id}
                 href={href}
-                className="rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.05)] px-3 py-2 text-sm text-white transition hover:border-[rgba(255,255,255,0.18)]"
+                className="bubble-link rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.05)] px-3 py-2 text-sm text-white transition hover:border-[rgba(255,255,255,0.18)]"
                 target={isExternal ? "_blank" : undefined}
                 rel={isExternal ? "noreferrer" : undefined}
               >

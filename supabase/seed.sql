@@ -84,11 +84,11 @@ insert into items (id, page_id, section_id, title, subtitle, url, tags, badge, p
 values
   -- About grid
   ('a1a1a1a1-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'aaaa2222-2222-2222-2222-222222222222',
-    'From place → to purpose', 'Summarize where you started and how you arrived here.', null, null, 'Origin', null, null, 1, '{}'),
+    'From place → to purpose', null, null, null, 'Origin', null, null, 1, '{}'),
   ('a2a2a2a2-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'aaaa2222-2222-2222-2222-222222222222',
-    'Current role / craft', 'What you build, ship, research, or design right now.', null, null, 'Work', null, null, 2, '{}'),
+    'Current role / craft', null, null, null, 'Work', null, null, 2, '{}'),
   ('a3a3a3a3-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111', 'aaaa2222-2222-2222-2222-222222222222',
-    'What you’re exploring', 'Topics you’re investigating or skills you’re stretching.', null, null, 'Now', null, null, 3, '{}'),
+    'What you’re exploring', null, null, null, 'Now', null, null, 3, '{}'),
 
   -- Footer links (About)
   ('a4a4a4a4-4444-4444-4444-444444444444', '11111111-1111-1111-1111-111111111111', 'aaaa3333-3333-3333-3333-333333333333',
@@ -100,23 +100,23 @@ values
 
   -- Quick links grid
   ('b1b1b1b1-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'bbbb1111-1111-1111-1111-111111111111',
-    'Portfolio', 'Latest builds and experiments.', '#', null, 'Work', null, null, 1, '{}'),
+    'Email', 'Say hello anytime.', 'mailto:hello@yourdomain.com', null, 'Email', null, null, 1, '{}'),
   ('b2b2b2b2-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', 'bbbb1111-1111-1111-1111-111111111111',
-    'Writing', 'Notes, essays, and process.', '#', null, 'Notes', null, null, 2, '{}'),
+    'LinkedIn', 'Professional profile and highlights.', 'https://www.linkedin.com/in/your-handle', null, 'LinkedIn', null, null, 2, '{}'),
   ('b3b3b3b3-3333-3333-3333-333333333333', '22222222-2222-2222-2222-222222222222', 'bbbb1111-1111-1111-1111-111111111111',
-    'Contact', 'Email or schedule a chat.', '#', null, 'Contact', null, null, 3, '{}'),
+    'GitHub', 'Code, prototypes, and experiments.', 'https://github.com/your-handle', null, 'GitHub', null, null, 3, '{}'),
   ('b4b4b4b4-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'bbbb1111-1111-1111-1111-111111111111',
-    'CV', 'Download a clean PDF.', '#', null, 'CV', null, null, 4, '{}'),
+    'Download CV', 'Grab the latest PDF.', '/cv.pdf', null, 'CV', null, null, 4, '{}'),
 
   -- Principles grid
   ('c1c1c1c1-1111-1111-1111-111111111111', '33333333-3333-3333-3333-333333333333', 'cccc1111-1111-1111-1111-111111111111',
-    'Default to momentum', 'Bias for small, high-frequency shipping over big, rare drops.', null, null, '▲', null, null, 1, '{}'),
+    'Default to momentum', null, null, null, '▲', null, null, 1, '{}'),
   ('c2c2c2c2-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'cccc1111-1111-1111-1111-111111111111',
-    'Clarity > cleverness', 'Write and design so the intent is obvious; polish comes second.', null, null, '✹', null, null, 2, '{}'),
+    'Clarity > cleverness', null, null, null, '✹', null, null, 2, '{}'),
   ('c3c3c3c3-3333-3333-3333-333333333333', '33333333-3333-3333-3333-333333333333', 'cccc1111-1111-1111-1111-111111111111',
-    'Systems with soul', 'Build structured things that still feel human and alive.', null, null, '✜', null, null, 3, '{}'),
+    'Systems with soul', null, null, null, '✜', null, null, 3, '{}'),
   ('c4c4c4c4-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333', 'cccc1111-1111-1111-1111-111111111111',
-    'Time well-spent', 'Protect depth; welcome boredom; leave space for novelty.', null, null, '✦', null, null, 4, '{}'),
+    'Time well-spent', null, null, null, '✦', null, null, 4, '{}'),
 
   -- On Repeat scroller
   ('d1d1d1d1-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444', 'dddd1111-1111-1111-1111-111111111111',
@@ -179,7 +179,7 @@ set title = excluded.title,
 insert into chapter_items (id, chapter_id, type, title, body, meta, order_index, published, updated_at)
 select s.id,
        s.page_id,
-       'statement',
+       'entry',
        s.heading,
        s.body,
        s.meta,
@@ -202,16 +202,7 @@ set chapter_id = excluded.chapter_id,
 insert into chapter_items (id, chapter_id, type, title, body, url, meta, order_index, published, updated_at)
 select i.id,
        i.page_id,
-       case
-         when s.type = 'card_grid' and p.slug = 'quick-links' then 'link_tile'
-         when s.type = 'card_grid' and p.slug = 'principles' then 'principle'
-         when s.type = 'card_grid' and p.slug = 'favourite-spots' then 'spot'
-         when s.type = 'card_grid' and p.slug = 'about' then 'timeline_event'
-         when s.type = 'footer_links' then 'link_tile'
-         when s.type = 'mini_card_scroller' then 'repeat_item'
-         when s.type = 'list_with_badges' then 'media_item'
-         else 'statement'
-       end,
+       'entry',
        i.title,
        i.subtitle,
        i.url,

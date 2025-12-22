@@ -16,8 +16,9 @@ create table if not exists chapters (
 create table if not exists chapter_items (
   id uuid primary key default gen_random_uuid(),
   chapter_id uuid not null references chapters (id) on delete cascade,
-  type text not null check (
+  type text not null default 'entry' check (
     type in (
+      'entry',
       'statement',
       'timeline_event',
       'link_tile',
@@ -81,7 +82,7 @@ set title = excluded.title,
 insert into chapter_items (id, chapter_id, type, title, body, meta, order_index, published, updated_at)
 select s.id,
        s.page_id,
-       'statement',
+       'entry',
        s.heading,
        s.body,
        s.meta,
@@ -104,16 +105,7 @@ set chapter_id = excluded.chapter_id,
 insert into chapter_items (id, chapter_id, type, title, body, url, meta, order_index, published, updated_at)
 select i.id,
        i.page_id,
-       case
-         when s.type = 'card_grid' and p.slug = 'quick-links' then 'link_tile'
-         when s.type = 'card_grid' and p.slug = 'principles' then 'principle'
-         when s.type = 'card_grid' and p.slug = 'favourite-spots' then 'spot'
-         when s.type = 'card_grid' and p.slug = 'about' then 'timeline_event'
-         when s.type = 'footer_links' then 'link_tile'
-         when s.type = 'mini_card_scroller' then 'repeat_item'
-         when s.type = 'list_with_badges' then 'media_item'
-         else 'statement'
-       end,
+       'entry',
        i.title,
        i.subtitle,
        i.url,

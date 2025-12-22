@@ -33,7 +33,7 @@ export default function Sidebar({ pages }: SidebarProps) {
             EA
           </span>
           <div className="leading-tight">
-            <div className="text-sm font-semibold text-white">Emerging Atlas</div>
+            <div className="text-sm font-semibold text-white">Anderson Ng</div>
             <div className="text-xs uppercase tracking-[0.24em] text-[var(--muted)]">
               Personal Index
             </div>
@@ -41,7 +41,7 @@ export default function Sidebar({ pages }: SidebarProps) {
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] px-3 py-2 text-xs font-medium text-white transition hover:border-[rgba(255,255,255,0.2)] lg:hidden"
+          className="bubble-link inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.06)] px-3 py-2 text-xs font-medium text-white transition hover:border-[rgba(255,255,255,0.2)] lg:hidden"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-expanded={isOpen}
           aria-controls="sidebar-nav"

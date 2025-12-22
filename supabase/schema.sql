@@ -53,8 +53,9 @@ create table if not exists chapters (
 create table if not exists chapter_items (
   id uuid primary key default gen_random_uuid(),
   chapter_id uuid not null references chapters (id) on delete cascade,
-  type text not null check (
+  type text not null default 'entry' check (
     type in (
+      'entry',
       'statement',
       'timeline_event',
       'link_tile',

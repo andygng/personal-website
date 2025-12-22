@@ -1,5 +1,6 @@
 ## Overview
 - Single editorial-scroll home page at `/` with scroll-snapped chapters, an up-scroll chapter index, and a right-side dot navigator.
+- Each chapter is minimalist: chapter number, title, subheader, and a dropdown list on the right.
 - Content is sourced from Supabase `chapters` and `chapter_items` so the entire page is editable without code.
 
 ## Quickstart
@@ -15,11 +16,12 @@
   1. `supabase/schema.sql`
   2. `supabase/seed.sql`
   3. (optional) `supabase/migrations/202501070001_create_chapters.sql` for migrating existing data
+  4. (optional) `supabase/migrations/202501070002_simplify_chapter_items.sql` to add the `entry` default type
 - Start dev server: `npm run dev` then open `http://localhost:3000`.
 
 ## Supabase model
 - `chapters`: id (uuid, pk), slug (unique), title, subtitle, description, order_index, published, theme (jsonb), updated_at.
-- `chapter_items`: id, chapter_id (fk), type (`statement | timeline_event | link_tile | principle | repeat_item | media_item | spot`), title, body, url, image_url, meta (jsonb), order_index, published, updated_at.
+- `chapter_items`: id, chapter_id (fk), type (`entry` default), title, body, url, image_url, meta (jsonb), order_index, published, updated_at.
 - Legacy tables (`pages`, `sections`, `items`) are retained for migration but are no longer used by the UI.
 
 ## Project structure
@@ -29,27 +31,21 @@
 - `src/lib/queries.ts` — Supabase fetch helpers for chapters and chapter items.
 - `supabase/schema.sql` + `supabase/seed.sql` — schema, policies, and placeholder content.
 - `supabase/migrations/202501070001_create_chapters.sql` — creates chapter tables and migrates existing data.
+- `supabase/migrations/202501070002_simplify_chapter_items.sql` — adds the `entry` default type for simpler edits.
 
 ## How to edit content
-- `chapters` controls the chapter order and the editorial headline.
-  - Example (About): set `title = "About Me"`, `subtitle = "Currently Placeholder"`, `description = "Designing thoughtful products and playful tools."`, `order_index = 1`, `published = true`.
-- `chapter_items` controls the body content per chapter. Use `order_index` for ordering and `published` to hide.
+- `chapters` controls the chapter order and the editorial header.
+  - The subheader shown on the page uses `description` (with `subtitle` as a fallback), so you only need to edit `title` + `description`.
+  - Example (About): set `title = "About Me"`, `description = "Designing thoughtful products and playful tools."`, `order_index = 1`, `published = true`.
+- `chapter_items` controls the dropdown list on the right.
+  - For each chapter, add rows with `title` (required), optional `body`, optional `url`, and `order_index`.
+  - `type` defaults to `entry` and is not used by the UI, so you can leave it alone.
+  - For simple lists (On Repeat, Listening), leave `body` empty if you only want titles.
 
-Chapter examples:
-- About (`slug = about`):
-  - `statement` item for the hero block: `title = "Designing thoughtful products..."`, `body = "A personal corner..."`, `meta = {"kicker":"Currently","chips":["Based in: Anywhere"],"cta_primary":{"label":"Download CV","href":"#"}}`.
-  - `timeline_event` item for highlights: `title = "From place -> purpose"`, `body = "Summarize your origin story."`, `meta = {"badge":"Origin"}`.
-  - `link_tile` item for quick links: `title = "Email"`, `url = "mailto:hello@example.com"`.
-- Quick Links (`slug = quick-links`):
-  - `link_tile` item: `title = "Portfolio"`, `body = "Latest builds and experiments."`, `url = "https://..."`, `meta = {"badge":"Work"}`.
-- Principles (`slug = principles`):
-  - `principle` item: `title = "Default to momentum"`, `body = "Bias for small, high-frequency shipping."`, `meta = {"badge":"▲"}`.
-- On Repeat (`slug = on-repeat`):
-  - `repeat_item` item: `title = "Track Title - Artist"`, `body = "Album or mood note."`, `meta = {"cover_label":"A1"}`.
-- Listening / Reading (`slug = listening`):
-  - `media_item` item: `title = "Episode title - Host"`, `body = "One-line takeaway."`, `meta = {"badge":"EP01","tags":["design","systems"],"progress":55}`.
-- Favourite Spots (`slug = favourite-spots`):
-  - `spot` item: `title = "Studio nook"`, `body = "Quiet mornings, soft light."`, `meta = {"badge":"Work"}`.
+Examples (any chapter):
+- Minimal item (just a title): `title = "Portfolio"`, `order_index = 1`.
+- Item with details: `title = "Default to momentum"`, `body = "Bias for small, high-frequency shipping."`.
+- Item with a link: `title = "Email"`, `url = "mailto:hello@example.com"`.
 
 ## Scripts
 - `npm run dev` — start locally

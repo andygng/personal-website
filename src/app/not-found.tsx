@@ -18,7 +18,7 @@ export default function NotFound() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.05)] px-4 py-2 text-sm font-semibold text-white transition hover:border-[rgba(255,255,255,0.2)]"
+          className="bubble-link inline-flex items-center justify-center rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.05)] px-4 py-2 text-sm font-semibold text-white transition hover:border-[rgba(255,255,255,0.2)]"
         >
           Back home
         </Link>

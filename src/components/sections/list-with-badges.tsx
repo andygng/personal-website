@@ -57,7 +57,7 @@ export default function ListWithBadgesSection({
                     {tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.06)] px-3 py-1 text-[12px] text-[var(--muted)]"
+                        className="bubble-link rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.06)] px-3 py-1 text-[12px] text-[var(--muted)] transition"
                       >
                         {tag}
                       </span>

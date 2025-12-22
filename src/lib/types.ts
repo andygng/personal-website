@@ -50,6 +50,7 @@ export type PageWithContent = {
 };
 
 export type ChapterItemType =
+  | "entry"
   | "statement"
   | "timeline_event"
   | "link_tile"

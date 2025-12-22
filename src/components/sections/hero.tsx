@@ -53,7 +53,7 @@ export default function HeroSection({
             {meta.cta_primary && meta.cta_primary.label && (
               <a
                 href={meta.cta_primary.href || "#"}
-                className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.1)] bg-gradient-to-r from-[var(--primary)] to-[#78ffd8] px-4 py-2 text-sm font-bold text-[#062017] shadow-[0_10px_40px_rgba(43,245,199,0.25)] transition hover:-translate-y-[2px]"
+                className="bubble-link inline-flex items-center gap-2 rounded-full border border-[rgba(255,255,255,0.1)] bg-gradient-to-r from-[var(--primary)] to-[#78ffd8] px-4 py-2 text-sm font-bold text-[#062017] shadow-[0_10px_40px_rgba(43,245,199,0.25)] transition hover:-translate-y-[2px]"
               >
                 {meta.cta_primary.label}
               </a>
@@ -61,7 +61,7 @@ export default function HeroSection({
             {meta.cta_secondary && meta.cta_secondary.label && (
               <a
                 href={meta.cta_secondary.href || "#"}
-                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.06)] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.25)]"
+                className="bubble-link inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[rgba(255,255,255,0.06)] px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-[2px] hover:shadow-[0_10px_30px_rgba(0,0,0,0.25)]"
               >
                 {meta.cta_secondary.label}
               </a>
