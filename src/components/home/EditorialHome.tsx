@@ -1,7 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Markdown } from "@/components/Markdown";
 import type { ChapterItem, ChapterWithItems } from "@/lib/types";
 
@@ -178,7 +185,7 @@ const resolveSpotIconKey = (placeType?: string): SpotIconKey => {
 
 const spotIconData: Record<
   SpotIconKey,
-  { label: string; path: JSX.Element }
+  { label: string; path: ReactNode }
 > = {
   restaurant: {
     label: "Food",
