@@ -42,6 +42,15 @@
   - `type` defaults to `entry` and is not used by the UI, so you can leave it alone.
   - For simple lists (On Repeat, Listening), leave `body` empty if you only want titles.
 
+### Favourite Spots (Supabase dashboard workflow)
+- Use the Supabase web UI (Table Editor) and add rows in `chapter_items` for the `favourite-spots` chapter.
+- Add these fields:
+  - `title` (required)
+  - `url` (optional)
+  - `meta` JSON with `place_type` and `city`
+    - Example: `{ "place_type": "food", "city": "Toronto" }`
+- Supported `place_type` values: `food`, `cafe`, `bar` (mapped to icons automatically).
+
 Examples (any chapter):
 - Minimal item (just a title): `title = "Portfolio"`, `order_index = 1`.
 - Item with details: `title = "Default to momentum"`, `body = "Bias for small, high-frequency shipping."`.

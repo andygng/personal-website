@@ -46,6 +46,14 @@ const defaultTheme: ChapterTheme = {
   line: "rgba(255, 255, 255, 0.4)",
 };
 
+const chapterPhotos: Record<string, string> = {
+  about: "/photos/about.avif",
+  principles: "/photos/principles.avif",
+  "on-repeat": "/photos/on-repeat.avif",
+  listening: "/photos/listening.avif",
+  "favourite-spots": "/photos/places.avif",
+};
+
 const layoutBySlug: Record<string, string> = {
   about: "lg:grid-cols-[1.1fr_0.9fr] items-start",
   "quick-links": "lg:grid-cols-[0.9fr_1.1fr] items-start",
@@ -145,26 +153,93 @@ const uniqueValues = (values: Array<string | undefined>) => {
 
 const normalizeFilter = (value: string) => value.trim().toLowerCase();
 
-const buildSpotMarkdown = (items: ChapterItem[]) => {
-  if (!items.length) {
-    return "_No spots match these filters yet._";
+type SpotIconKey = "restaurant" | "cafe" | "bar" | "default";
+
+const normalizeSpotType = (value?: string) =>
+  value
+    ? value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z]/g, "")
+    : "";
+
+const resolveSpotIconKey = (placeType?: string): SpotIconKey => {
+  const normalized = normalizeSpotType(placeType);
+
+  if (!normalized) return "default";
+  if (normalized.includes("cafe")) return "cafe";
+  if (normalized.includes("bar")) return "bar";
+  if (normalized.includes("restaurant") || normalized.includes("food")) {
+    return "restaurant";
   }
-
-  return items
-    .map((item) => {
-      const title = item.title?.trim() || "Untitled";
-      const { city, placeType } = getSpotMeta(item);
-      const details = [city, placeType].filter(Boolean).join(" / ");
-      const detailsSuffix = details ? ` - _${details}_` : "";
-
-      if (item.url) {
-        return `- [${title}](${item.url})${detailsSuffix}`;
-      }
-
-      return `- ${title}${detailsSuffix}`;
-    })
-    .join("\n");
+  return "default";
 };
+
+const spotIconData: Record<
+  SpotIconKey,
+  { label: string; path: JSX.Element }
+> = {
+  restaurant: {
+    label: "Food",
+    path: (
+      <>
+        <path d="M6 3v8" />
+        <path d="M4 3v5" />
+        <path d="M8 3v5" />
+        <path d="M6 11v10" />
+        <path d="M15 3v18" />
+      </>
+    ),
+  },
+  cafe: {
+    label: "Cafe",
+    path: (
+      <>
+        <path d="M6 9h8v5a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3z" />
+        <path d="M14 10h2a2 2 0 0 1 0 4h-2" />
+        <path d="M6 19h10" />
+      </>
+    ),
+  },
+  bar: {
+    label: "Bar",
+    path: (
+      <>
+        <path d="M6 5h12l-6 7z" />
+        <path d="M12 12v7" />
+        <path d="M9 19h6" />
+      </>
+    ),
+  },
+  default: {
+    label: "Spot",
+    path: (
+      <>
+        <path d="M12 21c4-4 6-6.7 6-10a6 6 0 1 0-12 0c0 3.3 2 6 6 10z" />
+        <circle cx="12" cy="11" r="2.5" />
+      </>
+    ),
+  },
+};
+
+type SpotTypeIconProps = {
+  placeType?: string;
+};
+
+function SpotTypeIcon({ placeType }: SpotTypeIconProps) {
+  const key = resolveSpotIconKey(placeType);
+  const icon = spotIconData[key];
+
+  return (
+    <span className="spot-icon" title={icon.label}>
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        {icon.path}
+      </svg>
+      <span className="sr-only">{icon.label}</span>
+    </span>
+  );
+}
 
 type FavouriteSpotsPanelProps = {
   items: ChapterItem[];
@@ -230,11 +305,6 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
     });
   }, [activeCity, activeType, spotItems]);
 
-  const listMarkdown = useMemo(
-    () => buildSpotMarkdown(filteredItems),
-    [filteredItems],
-  );
-
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -280,8 +350,50 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
         </div>
       </div>
 
-      <div className="spot-scroll mt-4 max-h-[58vh] overflow-y-auto py-2 pr-3">
-        <Markdown content={listMarkdown} className="spot-list text-sm" />
+      <div className="spot-scroll mt-4 max-h-[68vh] overflow-y-auto py-2 pr-3 sm:max-h-[58vh]">
+        {filteredItems.length === 0 ? (
+          <p className="text-sm italic text-[var(--muted)]">
+            No spots match these filters yet.
+          </p>
+        ) : (
+          <div className="spot-table text-sm">
+            <div className="spot-header">
+              <span>Type</span>
+              <span>Name</span>
+              <span>City</span>
+            </div>
+            <ul className="spot-rows">
+              {filteredItems.map((item) => {
+                const title = item.title?.trim() || "Untitled";
+                const { city, placeType } = getSpotMeta(item);
+                const href = item.url ?? "";
+                const isExternal = href.startsWith("http");
+
+                return (
+                  <li key={item.id} className="spot-row">
+                    <div className="spot-type">
+                      <SpotTypeIcon placeType={placeType} />
+                    </div>
+                    <div className="spot-name">
+                      {href ? (
+                        <a
+                          href={href}
+                          target={isExternal ? "_blank" : undefined}
+                          rel={isExternal ? "noreferrer" : undefined}
+                        >
+                          {title}
+                        </a>
+                      ) : (
+                        <span>{title}</span>
+                      )}
+                    </div>
+                    <div className="spot-city">{city || "-"}</div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -369,10 +481,15 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
 
   const renderItemList = (
     items: ChapterItem[],
-    options?: { allowDetails?: boolean; linkEntireItem?: boolean },
+    options?: {
+      allowDetails?: boolean;
+      linkEntireItem?: boolean;
+      showBody?: boolean;
+    },
   ) => {
     const allowDetails = options?.allowDetails ?? true;
     const linkEntireItem = options?.linkEntireItem ?? false;
+    const showBody = options?.showBody ?? false;
 
     return (
       <div className="space-y-3">
@@ -389,9 +506,16 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                 <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
                   {String(itemIndex + 1).padStart(2, "0")}
                 </span>
-                <span className="flex-1 text-base font-semibold text-white">
-                  {title}
-                </span>
+                <div className="flex-1">
+                  <span className="block text-base font-semibold text-white">
+                    {title}
+                  </span>
+                  {showBody && body && (
+                    <span className="mt-1 block text-sm text-[var(--muted)]">
+                      {body}
+                    </span>
+                  )}
+                </div>
               </>
             );
 
@@ -400,7 +524,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                 <a
                   key={item.id}
                   href={href}
-                  className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4 transition hover:border-[rgba(255,255,255,0.35)]"
+                  className="bubble-link flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4 transition hover:border-[rgba(255,255,255,0.35)]"
                   target={isExternal ? "_blank" : undefined}
                   rel={isExternal ? "noreferrer" : undefined}
                 >
@@ -519,7 +643,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     <div className="relative">
       <div
         className={clsx(
-          "fixed top-6 left-1/2 z-20 w-[min(92vw,680px)] -translate-x-1/2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.72)] px-4 py-2 text-[10px] uppercase tracking-[0.32em] text-[var(--muted)] backdrop-blur transition duration-300",
+          "fixed left-1/2 z-30 w-[min(92vw,680px)] -translate-x-1/2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.72)] px-4 py-2 text-[10px] uppercase tracking-[0.32em] text-[var(--muted)] backdrop-blur transition duration-300 top-[calc(env(safe-area-inset-top)+0.75rem)] sm:top-6",
           showIndex
             ? "pointer-events-auto opacity-100 translate-y-0"
             : "pointer-events-none opacity-0 -translate-y-3",
@@ -563,7 +687,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
         </div>
       </div>
 
-      <div className="fixed right-5 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-3">
+      <div className="fixed left-1/2 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.65)] px-3 py-2 backdrop-blur sm:left-auto sm:bottom-auto sm:right-5 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col sm:gap-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
         {displayChapters.map((chapter) => (
           <button
             key={chapter.slug}
@@ -574,13 +698,13 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
           >
             <span
               className={clsx(
-                "h-2.5 w-2.5 rounded-full border transition",
+                "h-3 w-3 rounded-full border transition sm:h-2.5 sm:w-2.5",
                 activeChapter === chapter.slug
                   ? "border-transparent bg-[var(--primary)] shadow-[0_0_0_6px_rgba(43,245,199,0.2)]"
                   : "border-[rgba(255,255,255,0.3)] bg-[rgba(255,255,255,0.15)] hover:bg-[rgba(255,255,255,0.35)]",
               )}
             />
-            <span className="pointer-events-none absolute right-6 translate-y-1 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.8)] px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-[var(--muted)] opacity-0 transition group-hover:opacity-100">
+            <span className="pointer-events-none absolute right-6 translate-y-1 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.8)] px-3 py-1 text-[10px] uppercase tracking-[0.28em] text-[var(--muted)] opacity-0 transition group-hover:opacity-100 hidden sm:block">
               {chapter.title}
             </span>
           </button>
@@ -599,10 +723,18 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
           const isLast = index === displayChapters.length - 1;
           const isMergedAbout =
             shouldMergeQuickLinks && chapter.slug === "about";
+          const isActive = activeChapter === chapter.slug;
+          const photo = chapterPhotos[chapter.slug];
           const isAbout = chapter.slug === "about";
           const isPrinciples = chapter.slug === "principles";
           const isOnRepeat = chapter.slug === "on-repeat";
-          const allowDetails = !(isAbout || isPrinciples || isOnRepeat);
+          const isListening = chapter.slug === "listening";
+          const allowDetails = !(
+            isAbout ||
+            isPrinciples ||
+            isOnRepeat ||
+            isListening
+          );
           const isFavouriteSpots = chapter.slug === "favourite-spots";
           const linkTileItems = isAbout
             ? items.filter((item) => isLinkTile(item) && item.url)
@@ -645,7 +777,26 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                 "--chapter-line": theme.line,
               } as CSSProperties}
             >
-              <div className={clsx("mx-auto w-full max-w-6xl", "grid gap-10 lg:gap-16", layout)}>
+              {photo && (
+                <div
+                  className={clsx("chapter-photo", isActive && "is-active")}
+                  aria-hidden="true"
+                >
+                  <div
+                    className="chapter-photo__image"
+                    style={{ backgroundImage: `url(${photo})` }}
+                  />
+                  <div className="chapter-photo__wash" />
+                  <div className="chapter-photo__grain" />
+                </div>
+              )}
+              <div
+                className={clsx(
+                  "relative z-10 mx-auto w-full max-w-6xl",
+                  "grid gap-10 lg:gap-16",
+                  layout,
+                )}
+              >
                 <div className="flex min-h-[70vh] flex-col justify-center space-y-6">
                   <div
                     className="text-[clamp(2.4rem,5vw,4.4rem)] font-semibold text-[var(--chapter-line)]"
@@ -683,7 +834,8 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                     <div className="space-y-6">
                       {renderItemList(timelineItems, {
                         allowDetails,
-                        linkEntireItem: isOnRepeat,
+                        linkEntireItem: isOnRepeat || isListening,
+                        showBody: isListening,
                       })}
                       {isAbout && renderLinkBubbles(linkTileItems)}
                     </div>

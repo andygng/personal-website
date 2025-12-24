@@ -105,7 +105,51 @@ a {
   background: radial-gradient(circle at 20% 15%, var(--chapter-glow), transparent 58%);
   opacity: 0.9;
   pointer-events: none;
+  z-index: 1;
+}
+
+.chapter-photo {
+  position: absolute;
+  inset: 0;
   z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.chapter-photo.is-active {
+  opacity: 0.45;
+}
+
+.chapter-photo__image {
+  position: absolute;
+  inset: -6%;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: blur(8px) saturate(0.95) brightness(0.9);
+  transform: scale(1.05);
+  will-change: transform;
+}
+
+.chapter-photo.is-active .chapter-photo__image {
+  animation: photoBreath 26s ease-in-out infinite;
+}
+
+.chapter-photo__wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(140deg, rgba(8, 12, 24, 0.55), rgba(10, 16, 28, 0.3));
+  mix-blend-mode: soft-light;
+  opacity: 0.8;
+}
+
+.chapter-photo__grain {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
 }
 
 @keyframes float {
@@ -114,6 +158,15 @@ a {
   }
   to {
     transform: translate3d(-80px, 40px, 0) scale(1.04);
+  }
+}
+
+@keyframes photoBreath {
+  0% {
+    transform: scale(1.05) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.1) translate3d(-1.5%, 1%, 0);
   }
 }
 
@@ -136,7 +189,7 @@ a {
 
 .bubble-link {
   filter: none;
-  transition-delay: 160ms;
+  transition-delay: 140ms;
   will-change: filter;
 }
 
@@ -235,54 +288,109 @@ a {
   border-radius: 999px;
 }
 
-.spot-list ul {
+.spot-table {
+  display: grid;
+  gap: 0;
+}
+
+.spot-header,
+.spot-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 120px;
+  align-items: center;
+  gap: 12px;
+}
+
+.spot-header {
+  padding: 4px 0 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.spot-header span:last-child {
+  text-align: right;
+}
+
+.spot-rows {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.spot-list li {
-  position: relative;
-  padding: 12px 0 12px 16px;
+.spot-row {
+  padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
 
-.spot-list li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 18px;
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--chapter-line);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
-}
-
-.spot-list li:last-child {
+.spot-row:last-child {
   border-bottom: 0;
 }
 
-.spot-list li p {
-  margin: 0;
+.spot-type {
+  display: flex;
+  align-items: center;
 }
 
-.spot-list a {
+.spot-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  text-decoration: none;
-  font-weight: 600;
 }
 
-.spot-list a:hover {
+.spot-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.spot-name a,
+.spot-name span {
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.spot-name a:hover {
   color: var(--primary);
   text-decoration: underline;
 }
 
-.spot-list em {
+.spot-city {
   color: var(--muted);
-  font-style: normal;
   font-size: 0.85rem;
+  text-align: right;
 }
+
+@media (max-width: 640px) {
+  .spot-header,
+  .spot-row {
+    grid-template-columns: 34px minmax(0, 1fr) 90px;
+    gap: 8px;
+  }
+
+  .spot-header {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+  }
+
+  .spot-city {
+    font-size: 0.8rem;
+  }
+}
+
 
 .shadowed {
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);

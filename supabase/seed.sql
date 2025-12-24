@@ -138,13 +138,13 @@ values
 
   -- Favourite spots
   ('f1f1f1f1-1111-1111-1111-111111111111', '66666666-6666-6666-6666-666666666666', 'ffff1111-1111-1111-1111-111111111111',
-    'Studio nook', 'Quiet mornings, soft light, good pens.', null, null, 'Work', null, null, 1, '{}'),
+    'Studio nook', 'Quiet mornings, soft light, good pens.', null, null, 'Work', null, null, 1, '{"city": "Toronto", "place_type": "food"}'),
   ('f2f2f2f2-2222-2222-2222-222222222222', '66666666-6666-6666-6666-666666666666', 'ffff1111-1111-1111-1111-111111111111',
-    'Late-night café', 'Hum of conversation and synth playlists.', null, null, 'Cafe', null, null, 2, '{}'),
+    'Late-night cafe', 'Hum of conversation and synth playlists.', null, null, 'Cafe', null, null, 2, '{"city": "Montreal", "place_type": "cafe"}'),
   ('f3f3f3f3-3333-3333-3333-333333333333', '66666666-6666-6666-6666-666666666666', 'ffff1111-1111-1111-1111-111111111111',
-    'Gallery loop', 'A monthly tour to reset the eye.', null, null, 'Inspo', null, null, 3, '{}'),
+    'Gallery loop', 'A monthly tour to reset the eye.', null, null, 'Inspo', null, null, 3, '{"city": "Chicago", "place_type": "bar"}'),
   ('f4f4f4f4-4444-4444-4444-444444444444', '66666666-6666-6666-6666-666666666666', 'ffff1111-1111-1111-1111-111111111111',
-    'Walking route', 'A quiet circuit for thinking days.', null, null, 'Slow', null, null, 4, '{}')
+    'Walking route', 'A quiet circuit for thinking days.', null, null, 'Slow', null, null, 4, '{"city": "Lisbon", "place_type": "food"}')
 on conflict (id) do update
 set title = excluded.title,
     subtitle = excluded.subtitle,
@@ -174,6 +174,15 @@ set title = excluded.title,
     order_index = excluded.order_index,
     published = excluded.published,
     updated_at = excluded.updated_at;
+
+update chapters
+set theme = '{
+  "spots_filters": {
+    "types": ["food", "cafe", "bar"],
+    "cities": ["Toronto", "Montreal", "Chicago", "Lisbon"]
+  }
+}'::jsonb
+where slug = 'favourite-spots';
 
 -- Seed chapter statements from sections
 insert into chapter_items (id, chapter_id, type, title, body, meta, order_index, published, updated_at)
