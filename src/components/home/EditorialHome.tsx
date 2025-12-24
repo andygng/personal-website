@@ -800,11 +800,11 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               <div
                 className={clsx(
                   "relative z-10 mx-auto w-full max-w-6xl",
-                  "grid gap-10 lg:gap-16",
+                  "grid gap-8 md:gap-10 lg:gap-16",
                   layout,
                 )}
               >
-                <div className="flex min-h-[70vh] flex-col justify-center space-y-6">
+                <div className="flex min-h-0 flex-col justify-center space-y-4 md:min-h-[60vh] md:space-y-6 lg:min-h-[70vh]">
                   <div
                     className="text-[clamp(2.4rem,5vw,4.4rem)] font-semibold text-[var(--chapter-line)]"
                     style={{ fontFamily: "var(--font-display)" }}
@@ -826,8 +826,8 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
 
                 <div
                   className={clsx(
-                    "flex min-h-[70vh] flex-col",
-                    isFavouriteSpots ? "justify-start" : "justify-center",
+                    "flex min-h-0 flex-col justify-start md:min-h-[60vh] lg:min-h-[70vh]",
+                    isFavouriteSpots ? "lg:justify-start" : "md:justify-center",
                   )}
                 >
                   {isMergedAbout ? (
