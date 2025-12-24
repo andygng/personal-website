@@ -17,11 +17,16 @@ const splineMono = Spline_Sans_Mono({
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+const normalizedSiteUrl = siteUrl
+  ? siteUrl.startsWith("http://") || siteUrl.startsWith("https://")
+    ? siteUrl
+    : `https://${siteUrl}`
+  : undefined;
 
 export const metadata: Metadata = {
   title: "Anderson Ng",
   description: "Designing thoughtful products and playful tools.",
-  metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+  metadataBase: normalizedSiteUrl ? new URL(normalizedSiteUrl) : undefined,
 };
 
 export default function RootLayout({
