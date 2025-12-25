@@ -694,7 +694,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
         </div>
       </div>
 
-      <div className="fixed left-1/2 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-20 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.65)] px-3 py-2 backdrop-blur sm:left-auto sm:bottom-auto sm:right-5 sm:top-1/2 sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col sm:gap-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
+      <div className="fixed left-1/2 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-20 hidden -translate-x-1/2 items-center gap-2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.65)] px-3 py-2 backdrop-blur sm:left-auto sm:bottom-auto sm:right-5 sm:top-1/2 sm:flex sm:-translate-x-0 sm:-translate-y-1/2 sm:flex-col sm:gap-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
         {displayChapters.map((chapter) => (
           <button
             key={chapter.slug}
@@ -778,7 +778,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               key={chapter.id}
               id={chapter.slug}
               data-chapter={chapter.slug}
-              className="chapter-shell snap-start flex min-h-[100svh] items-center px-6 py-12 sm:px-10 lg:px-16"
+              className="chapter-shell snap-start flex min-h-[100svh] items-start px-6 py-8 sm:px-10 sm:py-10 md:items-center lg:px-16 lg:py-12"
               style={{
                 "--chapter-glow": theme.glow,
                 "--chapter-line": theme.line,
@@ -804,7 +804,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                   layout,
                 )}
               >
-                <div className="flex min-h-0 flex-col justify-center space-y-4 md:min-h-[60vh] md:space-y-6 lg:min-h-[70vh]">
+                <div className="flex min-h-0 flex-col justify-start space-y-4 md:min-h-[60vh] md:justify-center md:space-y-6 lg:min-h-[70vh]">
                   <div
                     className="text-[clamp(2.4rem,5vw,4.4rem)] font-semibold text-[var(--chapter-line)]"
                     style={{ fontFamily: "var(--font-display)" }}
@@ -848,7 +848,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                     </div>
                   )}
 
-                  <div className="mt-8 flex items-center justify-between text-xs uppercase tracking-[0.3em] text-[var(--muted)]">
+                  <div className="mt-8 hidden items-center justify-between text-xs uppercase tracking-[0.3em] text-[var(--muted)] sm:flex">
                     <span>Chapter {String(index + 1).padStart(2, "0")}</span>
                     <button
                       type="button"
