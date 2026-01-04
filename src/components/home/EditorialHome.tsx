@@ -314,22 +314,22 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
 
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3 sm:gap-4">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[11px]">
             Filter spots
           </p>
-          <p className="mt-2 text-xs text-[var(--muted)]">
+          <p className="mt-2 text-[11px] text-[var(--muted)] sm:text-xs">
             {filteredItems.length} of {spotItems.length} places
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.3em] text-[var(--muted)]">
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          <label className="flex flex-col gap-2 text-[9px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[10px]">
             City
             <select
               value={activeCity}
               onChange={(event) => setActiveCity(event.target.value)}
-              className="min-w-[160px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-sm text-white"
+              className="min-w-[140px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-[13px] text-white sm:min-w-[160px] sm:text-sm"
             >
               <option value="all">All cities</option>
               {cities.map((city) => (
@@ -339,12 +339,12 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-[10px] uppercase tracking-[0.3em] text-[var(--muted)]">
+          <label className="flex flex-col gap-2 text-[9px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[10px]">
             Type
             <select
               value={activeType}
               onChange={(event) => setActiveType(event.target.value)}
-              className="min-w-[160px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-sm text-white"
+              className="min-w-[140px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-[13px] text-white sm:min-w-[160px] sm:text-sm"
             >
               <option value="all">All types</option>
               {types.map((type) => (
@@ -357,13 +357,13 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
         </div>
       </div>
 
-      <div className="spot-scroll mt-4 max-h-[68vh] overflow-y-auto py-2 pr-3 sm:max-h-[58vh]">
+      <div className="spot-scroll mt-3 max-h-[62vh] overflow-y-auto py-2 pr-3 sm:mt-4 sm:max-h-[58vh]">
         {filteredItems.length === 0 ? (
-          <p className="text-sm italic text-[var(--muted)]">
+          <p className="text-[13px] italic text-[var(--muted)] sm:text-sm">
             No spots match these filters yet.
           </p>
         ) : (
-          <div className="spot-table text-sm">
+          <div className="spot-table text-[13px] sm:text-sm">
             <div className="spot-header">
               <span>Type</span>
               <span>Name</span>
@@ -499,7 +499,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     const showBody = options?.showBody ?? false;
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {items.map((item, itemIndex) => {
           const body = item.body;
           const hasDetails = allowDetails && Boolean(body || item.url);
@@ -510,15 +510,15 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             const isExternal = href.startsWith("http");
             const content = (
               <>
-                <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[11px]">
                   {String(itemIndex + 1).padStart(2, "0")}
                 </span>
                 <div className="flex-1">
-                  <span className="block text-base font-semibold text-white">
+                  <span className="block text-[15px] font-semibold text-white sm:text-base">
                     {title}
                   </span>
                   {showBody && body && (
-                    <span className="mt-1 block text-sm text-[var(--muted)]">
+                    <span className="mt-1 block text-[13px] text-[var(--muted)] sm:text-sm">
                       {body}
                     </span>
                   )}
@@ -531,7 +531,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                 <a
                   key={item.id}
                   href={href}
-                  className="bubble-link flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4 transition hover:border-[rgba(255,255,255,0.35)]"
+                  className="bubble-link flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-3 transition hover:border-[rgba(255,255,255,0.35)] sm:px-4 sm:py-4"
                   target={isExternal ? "_blank" : undefined}
                   rel={isExternal ? "noreferrer" : undefined}
                 >
@@ -543,7 +543,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4"
+                className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-3 sm:px-4 sm:py-4"
               >
                 {content}
               </div>
@@ -554,12 +554,12 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             return (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4 py-4"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-3 sm:px-4 sm:py-4"
               >
-                <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[11px]">
                   {String(itemIndex + 1).padStart(2, "0")}
                 </span>
-                <span className="text-base font-semibold text-white">
+                <span className="text-[15px] font-semibold text-white sm:text-base">
                   {title}
                 </span>
               </div>
@@ -569,25 +569,27 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
           return (
             <details
               key={item.id}
-              className="group rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-4"
+              className="group rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 sm:px-4"
             >
-              <summary className="flex cursor-pointer items-center justify-between gap-4 py-4">
-                <span className="text-[11px] uppercase tracking-[0.3em] text-[var(--muted)]">
+              <summary className="flex cursor-pointer items-center justify-between gap-4 py-3 sm:py-4">
+                <span className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[11px]">
                   {String(itemIndex + 1).padStart(2, "0")}
                 </span>
-                <span className="flex-1 text-base font-semibold text-white">
+                <span className="flex-1 text-[15px] font-semibold text-white sm:text-base">
                   {title}
                 </span>
-                <span className="text-[11px] uppercase tracking-[0.28em] text-[var(--muted)] transition group-open:text-white">
+                <span className="text-[10px] uppercase tracking-[0.28em] text-[var(--muted)] transition group-open:text-white sm:text-[11px]">
                   View
                 </span>
               </summary>
-              <div className="pb-4 pr-6 pl-8 text-[14px] text-[var(--muted)]">
-                {body && <Markdown content={body} className="text-sm" />}
+              <div className="pb-3 pr-5 pl-6 text-[13px] text-[var(--muted)] sm:pb-4 sm:pr-6 sm:pl-8 sm:text-[14px]">
+                {body && (
+                  <Markdown content={body} className="text-[13px] sm:text-sm" />
+                )}
                 {item.url && (
                   <a
                     href={item.url}
-                    className="mt-3 inline-flex text-[11px] uppercase tracking-[0.28em] text-white"
+                    className="mt-3 inline-flex text-[10px] uppercase tracking-[0.28em] text-white sm:text-[11px]"
                   >
                     Open link
                   </a>
@@ -604,7 +606,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     if (items.length === 0) return null;
 
     return (
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
         {items.map((item) => {
           const href = item.url ?? "#";
           const isExternal = href.startsWith("http");
@@ -613,7 +615,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             <a
               key={item.id}
               href={href}
-              className="bubble-link rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.04)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white transition hover:border-[rgba(255,255,255,0.35)]"
+              className="bubble-link rounded-full border border-[rgba(255,255,255,0.18)] bg-[rgba(255,255,255,0.04)] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-white transition hover:border-[rgba(255,255,255,0.35)] sm:px-4 sm:py-2 sm:text-[11px]"
               target={isExternal ? "_blank" : undefined}
               rel={isExternal ? "noreferrer" : undefined}
             >
@@ -647,7 +649,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-hidden">
       <div
         className={clsx(
           "fixed left-1/2 z-30 w-[min(92vw,680px)] -translate-x-1/2 rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(5,7,13,0.72)] px-4 py-2 text-[10px] uppercase tracking-[0.32em] text-[var(--muted)] backdrop-blur transition duration-300 top-[calc(env(safe-area-inset-top)+0.75rem)] sm:top-6",
@@ -656,14 +658,14 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             : "pointer-events-none opacity-0 -translate-y-3",
         )}
       >
-        <div className="no-scrollbar flex items-center justify-start gap-3 overflow-x-auto px-2">
+        <div className="no-scrollbar flex flex-wrap items-center justify-start gap-2 overflow-x-hidden px-2 sm:flex-nowrap sm:gap-3 sm:overflow-x-auto">
           {displayChapters.map((chapter, index) => (
             <button
               key={chapter.id}
               type="button"
               onClick={() => scrollToChapter(chapter.slug)}
               className={clsx(
-                "bubble-link group flex shrink-0 items-center gap-2 rounded-full border border-transparent px-3 py-1 transition",
+                "bubble-link group flex shrink-0 items-center gap-2 rounded-full border border-transparent px-2.5 py-1 transition sm:px-3",
                 activeChapter === chapter.slug
                   ? "border-[rgba(255,255,255,0.25)]"
                   : "hover:border-[rgba(255,255,255,0.2)]",
@@ -671,7 +673,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             >
               <span
                 className={clsx(
-                  "text-[10px] font-semibold tracking-[0.32em]",
+                  "text-[9px] font-semibold tracking-[0.32em] sm:text-[10px]",
                   activeChapter === chapter.slug
                     ? "text-white"
                     : "text-[var(--muted)] group-hover:text-white",
@@ -681,7 +683,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               </span>
               <span
                 className={clsx(
-                  "whitespace-nowrap text-[9px] font-normal tracking-[0.16em] normal-case",
+                  "whitespace-nowrap text-[8px] font-normal tracking-[0.16em] normal-case sm:text-[9px]",
                   activeChapter === chapter.slug
                     ? "text-[rgba(255,255,255,0.7)]"
                     : "text-[rgba(255,255,255,0.45)] group-hover:text-[rgba(255,255,255,0.7)]",
@@ -778,7 +780,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               key={chapter.id}
               id={chapter.slug}
               data-chapter={chapter.slug}
-              className="chapter-shell snap-start flex min-h-[100svh] items-start px-6 py-8 sm:px-10 sm:py-10 md:items-center lg:px-16 lg:py-12"
+              className="chapter-shell snap-start flex min-h-[100svh] items-start px-6 py-12 sm:px-10 sm:py-10 md:items-center lg:px-16 lg:py-12"
               style={{
                 "--chapter-glow": theme.glow,
                 "--chapter-line": theme.line,
@@ -800,25 +802,25 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               <div
                 className={clsx(
                   "relative z-10 mx-auto w-full max-w-6xl",
-                  "grid gap-8 md:gap-10 lg:gap-16",
+                  "grid gap-6 sm:gap-8 md:gap-10 lg:gap-16",
                   layout,
                 )}
               >
-                <div className="flex min-h-0 flex-col justify-start space-y-4 md:min-h-[60vh] md:justify-center md:space-y-6 lg:min-h-[70vh]">
+                <div className="flex min-h-0 flex-col justify-start space-y-3 sm:space-y-4 md:min-h-[60vh] md:justify-center md:space-y-6 lg:min-h-[70vh]">
                   <div
-                    className="text-[clamp(2.4rem,5vw,4.4rem)] font-semibold text-[var(--chapter-line)]"
+                    className="text-[clamp(1.9rem,7vw,3.2rem)] font-semibold text-[var(--chapter-line)] sm:text-[clamp(2.4rem,5vw,4.4rem)]"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {String(index + 1).padStart(2, "0")}
                   </div>
                   <h2
-                    className="text-[clamp(2.2rem,5vw,4rem)] font-semibold leading-tight text-white"
+                    className="text-[clamp(1.8rem,7vw,3rem)] font-semibold leading-tight text-white sm:text-[clamp(2.2rem,5vw,4rem)]"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {chapter.title}
                   </h2>
                   {subheader && (
-                    <p className="max-w-xl text-[15px] text-[var(--muted)] md:text-[17px]">
+                    <p className="max-w-xl text-[13px] text-[var(--muted)] sm:text-[15px] md:text-[17px]">
                       {subheader}
                     </p>
                   )}
@@ -831,14 +833,14 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                   )}
                 >
                   {isMergedAbout ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                       {renderItemList(backgroundItems, { allowDetails })}
                       {renderLinkBubbles(linkItems)}
                     </div>
                   ) : isFavouriteSpots ? (
                     <FavouriteSpotsPanel items={items} theme={chapter.theme} />
                   ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                       {renderItemList(timelineItems, {
                         allowDetails,
                         linkEntireItem: isOnRepeat || isListening,
