@@ -780,7 +780,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               key={chapter.id}
               id={chapter.slug}
               data-chapter={chapter.slug}
-              className="chapter-shell snap-start flex min-h-[100svh] items-start px-6 py-12 sm:px-10 sm:py-10 md:items-center lg:px-16 lg:py-12"
+              className="chapter-shell snap-start flex min-h-[100dvh] items-start px-6 py-12 sm:px-10 sm:py-10 md:items-center lg:px-16 lg:py-12"
               style={{
                 "--chapter-glow": theme.glow,
                 "--chapter-line": theme.line,
