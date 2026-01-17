@@ -406,6 +406,29 @@ a {
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
 }
 
+/* Mobile-only overrides to keep desktop behavior unchanged */
+@media (max-width: 768px) {
+  html {
+    /* On mobile, forced scroll snapping + overscroll suppression can feel like “scroll lock” */
+    scroll-snap-type: y proximity;
+    overscroll-behavior-y: auto;
+    height: auto;
+  }
+
+  body {
+    scroll-snap-type: y proximity;
+    overscroll-behavior-y: auto;
+    height: auto;
+    min-height: 100dvh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chapter-shell {
+    /* Avoid hard stops on touch scroll */
+    scroll-snap-stop: normal;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html,
   body {

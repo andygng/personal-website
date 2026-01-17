@@ -66,9 +66,9 @@ const layoutBySlug: Record<string, string> = {
   about: "lg:grid-cols-[1.1fr_0.9fr] items-start",
   "quick-links": "lg:grid-cols-[0.9fr_1.1fr] items-start",
   principles: "lg:grid-cols-[1fr_1fr] items-center",
-  "on-repeat": "lg:grid-cols-[0.8fr_1.2fr] items-start",
-  listening: "lg:grid-cols-[1fr_1fr] items-start",
-  "favourite-spots": "lg:grid-cols-[1fr_1fr] items-start",
+  "on-repeat": "lg:grid-cols-[0.8fr_1.2fr] items-center",
+  listening: "lg:grid-cols-[1fr_1fr] items-center",
+  "favourite-spots": "lg:grid-cols-[1fr_1fr] items-center",
 };
 
 const sortItems = (items: ChapterItem[]) =>
@@ -540,18 +540,70 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
   useEffect(() => {
     if (!displayChapters.length) return;
 
+    const sections = getSections();
+    if (!sections.length) return;
+
+    const ratioByElement = new Map<Element, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isAutoSnappingRef.current) return;
+
+        entries.forEach((entry) => {
+          ratioByElement.set(
+            entry.target,
+            entry.isIntersecting ? entry.intersectionRatio : 0,
+          );
+        });
+
+        let bestSlug: string | null = null;
+        let bestRatio = 0;
+
+        ratioByElement.forEach((ratio, element) => {
+          if (ratio <= bestRatio) return;
+          const slug = (element as HTMLElement).dataset.chapter;
+          if (!slug) return;
+          bestRatio = ratio;
+          bestSlug = slug;
+        });
+
+        if (!bestSlug) return;
+
+        setActiveChapter((prev) => (prev === bestSlug ? prev : bestSlug));
+      },
+      {
+        threshold: [0, 0.4, 0.6, 0.8],
+      },
+    );
+
+    sections.forEach((section) => {
+      ratioByElement.set(section, 0);
+      observer.observe(section);
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [displayChapters.length, getSections]);
+
+  useEffect(() => {
+    if (!displayChapters.length) return;
+
     const isInteractiveElement = (target: EventTarget | null) => {
       if (!target || !(target instanceof HTMLElement)) return false;
       if (target.isContentEditable) return true;
 
       const tagName = target.tagName.toLowerCase();
-      if (["input", "textarea", "select", "button"].includes(tagName)) {
+      if (
+        ["input", "textarea", "select", "button", "summary"].includes(
+          tagName,
+        )
+      ) {
         return true;
       }
 
       return Boolean(
         target.closest(
-          "a, button, input, textarea, select, [role='button']",
+          "a, button, input, textarea, select, summary, [role='button']",
         ),
       );
     };
@@ -593,6 +645,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     const handleWheel = (event: WheelEvent) => {
       if (event.defaultPrevented) return;
       if (event.deltaY === 0) return;
+      if (isInteractiveElement(event.target)) return;
       if (isAutoSnappingRef.current) {
         event.preventDefault();
         return;
@@ -681,12 +734,12 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
       <div className="space-y-2 sm:space-y-3">
         {items.map((item, itemIndex) => {
           const body = item.body;
-          const hasDetails = allowDetails && Boolean(body || item.url);
+          const href = item.url ?? "";
+          const isExternal = href.startsWith("http");
+          const hasDetails = allowDetails && Boolean(body || href);
           const title = item.title ?? "Untitled";
 
           if (linkEntireItem) {
-            const href = item.url ?? "";
-            const isExternal = href.startsWith("http");
             const content = (
               <>
                 <span className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[11px]">
@@ -765,10 +818,12 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
                 {body && (
                   <Markdown content={body} className="text-[13px] sm:text-sm" />
                 )}
-                {item.url && (
+                {href && (
                   <a
-                    href={item.url}
+                    href={href}
                     className="mt-3 inline-flex text-[10px] uppercase tracking-[0.28em] text-white sm:text-[11px]"
+                    target={isExternal ? "_blank" : undefined}
+                    rel={isExternal ? "noreferrer" : undefined}
                   >
                     Open link
                   </a>
@@ -782,12 +837,15 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
   };
 
   const renderLinkBubbles = (items: ChapterItem[]) => {
-    if (items.length === 0) return null;
+    const linkItems = items.filter(
+      (item) => item.url && item.url.trim().length > 0,
+    );
+    if (linkItems.length === 0) return null;
 
     return (
       <div className="flex flex-wrap gap-2 sm:gap-3">
-        {items.map((item) => {
-          const href = item.url ?? "#";
+        {linkItems.map((item) => {
+          const href = item.url!.trim();
           const isExternal = href.startsWith("http");
 
           return (
