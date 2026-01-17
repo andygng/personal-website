@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -279,38 +280,37 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
   const [activeCity, setActiveCity] = useState("all");
   const [activeType, setActiveType] = useState("all");
 
-  useEffect(() => {
-    if (
-      activeCity !== "all" &&
-      !cities.some((city) => normalizeFilter(city) === normalizeFilter(activeCity))
-    ) {
-      setActiveCity("all");
-    }
+  const resolvedActiveCity = useMemo(() => {
+    if (activeCity === "all") return "all";
+    const match = cities.some(
+      (city) => normalizeFilter(city) === normalizeFilter(activeCity),
+    );
+    return match ? activeCity : "all";
   }, [activeCity, cities]);
 
-  useEffect(() => {
-    if (
-      activeType !== "all" &&
-      !types.some((type) => normalizeFilter(type) === normalizeFilter(activeType))
-    ) {
-      setActiveType("all");
-    }
+  const resolvedActiveType = useMemo(() => {
+    if (activeType === "all") return "all";
+    const match = types.some(
+      (type) => normalizeFilter(type) === normalizeFilter(activeType),
+    );
+    return match ? activeType : "all";
   }, [activeType, types]);
 
   const filteredItems = useMemo(() => {
     return spotItems.filter((item) => {
       const { city, placeType } = getSpotMeta(item);
       const matchesCity =
-        activeCity === "all" ||
-        (city && normalizeFilter(city) === normalizeFilter(activeCity));
+        resolvedActiveCity === "all" ||
+        (city &&
+          normalizeFilter(city) === normalizeFilter(resolvedActiveCity));
       const matchesType =
-        activeType === "all" ||
+        resolvedActiveType === "all" ||
         (placeType &&
-          normalizeFilter(placeType) === normalizeFilter(activeType));
+          normalizeFilter(placeType) === normalizeFilter(resolvedActiveType));
 
       return matchesCity && matchesType;
     });
-  }, [activeCity, activeType, spotItems]);
+  }, [resolvedActiveCity, resolvedActiveType, spotItems]);
 
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] p-5">
@@ -327,7 +327,7 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
           <label className="flex flex-col gap-2 text-[9px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[10px]">
             City
             <select
-              value={activeCity}
+              value={resolvedActiveCity}
               onChange={(event) => setActiveCity(event.target.value)}
               className="min-w-[140px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-[13px] text-white sm:min-w-[160px] sm:text-sm"
             >
@@ -342,7 +342,7 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
           <label className="flex flex-col gap-2 text-[9px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[10px]">
             Type
             <select
-              value={activeType}
+              value={resolvedActiveType}
               onChange={(event) => setActiveType(event.target.value)}
               className="min-w-[140px] rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-[13px] text-white sm:min-w-[160px] sm:text-sm"
             >
@@ -407,83 +407,262 @@ function FavouriteSpotsPanel({ items, theme }: FavouriteSpotsPanelProps) {
 }
 
 export default function EditorialHome({ chapters }: EditorialHomeProps) {
-  const quickLinksChapter = chapters.find(
-    (chapter) => chapter.slug === "quick-links",
+  const quickLinksChapter = useMemo(
+    () => chapters.find((chapter) => chapter.slug === "quick-links"),
+    [chapters],
   );
-  const aboutChapter = chapters.find((chapter) => chapter.slug === "about");
+  const aboutChapter = useMemo(
+    () => chapters.find((chapter) => chapter.slug === "about"),
+    [chapters],
+  );
   const shouldMergeQuickLinks = Boolean(quickLinksChapter && aboutChapter);
-  const displayChapters = shouldMergeQuickLinks
-    ? chapters.filter((chapter) => chapter.slug !== "quick-links")
-    : chapters;
+  const displayChapters = useMemo(
+    () =>
+      shouldMergeQuickLinks
+        ? chapters.filter((chapter) => chapter.slug !== "quick-links")
+        : chapters,
+    [chapters, shouldMergeQuickLinks],
+  );
   const [activeChapter, setActiveChapter] = useState(
     displayChapters[0]?.slug ?? "",
   );
-  const [showIndex, setShowIndex] = useState(false);
-  const lastScrollY = useRef(0);
-  const rafRef = useRef<number | null>(null);
+  const [showIndex, setShowIndex] = useState(true);
+  const snapReleaseRef = useRef<number | null>(null);
+  const isAutoSnappingRef = useRef(false);
 
-  useEffect(() => {
-    if (!chapters.length) return;
+  const getScrollBehavior = useCallback((): ScrollBehavior => {
+    if (typeof window === "undefined") return "auto";
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+  }, []);
 
-    const sections = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-chapter]"),
-    );
+  const lockAutoSnap = useCallback((duration = 1100) => {
+    if (typeof window === "undefined") return;
+    isAutoSnappingRef.current = true;
+    if (snapReleaseRef.current) {
+      window.clearTimeout(snapReleaseRef.current);
+    }
+    snapReleaseRef.current = window.setTimeout(() => {
+      isAutoSnappingRef.current = false;
+    }, duration);
+  }, []);
 
-    if (!sections.length) return;
+  const getSections = useCallback(
+    () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>("[data-chapter]"),
+      ),
+    [],
+  );
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const slug = entry.target.getAttribute("data-chapter");
-            if (slug) {
-              setActiveChapter(slug);
-            }
-          }
-        });
-      },
-      { threshold: 0.55 },
-    );
+  const scrollToIndex = useCallback(
+    (
+      targetIndex: number,
+      options?: { behavior?: ScrollBehavior; direction?: number },
+    ) => {
+      const sections = getSections();
+      if (!sections.length) return;
 
-    sections.forEach((section) => observer.observe(section));
+      const clampedIndex = Math.min(
+        Math.max(targetIndex, 0),
+        sections.length - 1,
+      );
+      const target = sections[clampedIndex];
+      if (!target) return;
 
-    return () => {
-      observer.disconnect();
-    };
-  }, [chapters]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (rafRef.current) return;
-
-      rafRef.current = window.requestAnimationFrame(() => {
-        const current = window.scrollY;
-        const delta = current - lastScrollY.current;
-
-        if (Math.abs(delta) > 8) {
-          setShowIndex(delta < 0);
-          lastScrollY.current = current;
-        }
-
-        rafRef.current = null;
-      });
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      if (rafRef.current) {
-        window.cancelAnimationFrame(rafRef.current);
+      const targetSlug = displayChapters[clampedIndex]?.slug;
+      if (targetSlug) {
+        setActiveChapter(targetSlug);
       }
-      window.removeEventListener("scroll", handleScroll);
+
+      if (options?.direction) {
+        setShowIndex(options.direction < 0 || clampedIndex === 0);
+      }
+
+      const behavior = options?.behavior ?? getScrollBehavior();
+      lockAutoSnap(behavior === "smooth" ? 1100 : 150);
+      target.scrollIntoView({ behavior, block: "start" });
+    },
+    [displayChapters, getScrollBehavior, getSections, lockAutoSnap],
+  );
+
+  const stepScroll = useCallback(
+    (direction: number) => {
+      if (isAutoSnappingRef.current) return;
+      const currentIndex = displayChapters.findIndex(
+        (chapter) => chapter.slug === activeChapter,
+      );
+      const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+      const targetIndex = Math.min(
+        Math.max(safeIndex + direction, 0),
+        displayChapters.length - 1,
+      );
+
+      if (targetIndex === safeIndex) return;
+      scrollToIndex(targetIndex, { direction });
+    },
+    [activeChapter, displayChapters, scrollToIndex],
+  );
+
+  useEffect(() => {
+    if (!displayChapters.length) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash) {
+        const hashIndex = displayChapters.findIndex(
+          (chapter) => chapter.slug === hash,
+        );
+        if (hashIndex >= 0) {
+          scrollToIndex(hashIndex, { behavior: "auto" });
+          return;
+        }
+      }
+
+      scrollToIndex(0, { behavior: "auto", direction: -1 });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [displayChapters, scrollToIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (snapReleaseRef.current) {
+        window.clearTimeout(snapReleaseRef.current);
+      }
+      isAutoSnappingRef.current = false;
     };
   }, []);
 
+  useEffect(() => {
+    if (!displayChapters.length) return;
+
+    const isInteractiveElement = (target: EventTarget | null) => {
+      if (!target || !(target instanceof HTMLElement)) return false;
+      if (target.isContentEditable) return true;
+
+      const tagName = target.tagName.toLowerCase();
+      if (["input", "textarea", "select", "button"].includes(tagName)) {
+        return true;
+      }
+
+      return Boolean(
+        target.closest(
+          "a, button, input, textarea, select, [role='button']",
+        ),
+      );
+    };
+
+    const shouldAllowNestedScroll = (
+      target: EventTarget | null,
+      deltaY: number,
+    ) => {
+      if (!target || !(target instanceof HTMLElement)) return false;
+
+      let node: HTMLElement | null = target;
+
+      while (
+        node &&
+        node !== document.body &&
+        node !== document.documentElement
+      ) {
+        const style = window.getComputedStyle(node);
+        const overflowY = style.overflowY;
+        const canScroll =
+          (overflowY === "auto" || overflowY === "scroll") &&
+          node.scrollHeight > node.clientHeight + 1;
+
+        if (canScroll) {
+          const canScrollDown =
+            node.scrollTop + node.clientHeight < node.scrollHeight - 1;
+          const canScrollUp = node.scrollTop > 0;
+          if (deltaY > 0 ? canScrollDown : canScrollUp) {
+            return true;
+          }
+        }
+
+        node = node.parentElement;
+      }
+
+      return false;
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      if (event.defaultPrevented) return;
+      if (event.deltaY === 0) return;
+      if (isAutoSnappingRef.current) {
+        event.preventDefault();
+        return;
+      }
+      if (shouldAllowNestedScroll(event.target, event.deltaY)) return;
+
+      event.preventDefault();
+      stepScroll(event.deltaY > 0 ? 1 : -1);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
+      if (isInteractiveElement(event.target)) return;
+      if (isAutoSnappingRef.current) {
+        if (
+          event.key === "ArrowDown" ||
+          event.key === "ArrowUp" ||
+          event.key === "PageDown" ||
+          event.key === "PageUp" ||
+          event.key === "Home" ||
+          event.key === "End" ||
+          event.key === " " ||
+          event.key === "Spacebar"
+        ) {
+          event.preventDefault();
+        }
+        return;
+      }
+
+      if (event.key === "ArrowDown" || event.key === "PageDown") {
+        event.preventDefault();
+        stepScroll(1);
+      } else if (event.key === "ArrowUp" || event.key === "PageUp") {
+        event.preventDefault();
+        stepScroll(-1);
+      } else if (event.key === "Home") {
+        event.preventDefault();
+        scrollToIndex(0, { direction: -1 });
+      } else if (event.key === "End") {
+        event.preventDefault();
+        scrollToIndex(displayChapters.length - 1, { direction: 1 });
+      } else if (event.key === " " || event.key === "Spacebar") {
+        event.preventDefault();
+        stepScroll(event.shiftKey ? -1 : 1);
+      }
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: false });
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [displayChapters.length, scrollToIndex, stepScroll]);
+
   const scrollToChapter = (slug: string) => {
-    const target = document.getElementById(slug);
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    const targetIndex = displayChapters.findIndex(
+      (chapter) => chapter.slug === slug,
+    );
+    if (targetIndex === -1) return;
+
+    const currentIndex = displayChapters.findIndex(
+      (chapter) => chapter.slug === activeChapter,
+    );
+    const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+    const direction =
+      targetIndex === safeIndex ? 0 : targetIndex > safeIndex ? 1 : -1;
+
+    scrollToIndex(targetIndex, { direction });
   };
 
   const renderItemList = (
@@ -725,8 +904,18 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
           const theme = chapterThemes[chapter.slug] ?? defaultTheme;
           const items = sortItems(chapter.items ?? []);
           const subheader = chapter.description ?? chapter.subtitle;
-          const layout =
+          const isFirstChapter = index === 0;
+          const layoutBase =
             layoutBySlug[chapter.slug] ?? "lg:grid-cols-[1fr_1fr]";
+          const layout = isFirstChapter
+            ? clsx(
+                layoutBase
+                  .split(" ")
+                  .filter((token) => token && !token.includes("items-"))
+                  .join(" "),
+                "items-center",
+              )
+            : layoutBase;
           const nextChapter =
             displayChapters[index + 1] ?? displayChapters[0] ?? chapter;
           const isLast = index === displayChapters.length - 1;
@@ -780,7 +969,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               key={chapter.id}
               id={chapter.slug}
               data-chapter={chapter.slug}
-              className="chapter-shell snap-start flex min-h-[100dvh] items-start px-6 py-12 sm:px-10 sm:py-10 md:items-center lg:px-16 lg:py-12"
+              className="chapter-shell snap-start flex h-[100dvh] items-stretch overflow-hidden"
               style={{
                 "--chapter-glow": theme.glow,
                 "--chapter-line": theme.line,
@@ -801,12 +990,12 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               )}
               <div
                 className={clsx(
-                  "relative z-10 mx-auto w-full max-w-6xl",
-                  "grid gap-6 sm:gap-8 md:gap-10 lg:gap-16",
+                  "relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl",
+                  "gap-6 px-6 pt-20 pb-12 sm:gap-8 sm:px-10 sm:pt-24 sm:pb-12 md:gap-10 lg:gap-16 lg:px-16 lg:pt-24 lg:pb-12",
                   layout,
                 )}
               >
-                <div className="flex min-h-0 flex-col justify-start space-y-3 sm:space-y-4 md:min-h-[60vh] md:justify-center md:space-y-6 lg:min-h-[70vh]">
+                <div className="flex min-h-0 flex-col justify-start space-y-3 sm:space-y-4 md:justify-center md:space-y-6">
                   <div
                     className="text-[clamp(1.9rem,7vw,3.2rem)] font-semibold text-[var(--chapter-line)] sm:text-[clamp(2.4rem,5vw,4.4rem)]"
                     style={{ fontFamily: "var(--font-display)" }}
@@ -828,27 +1017,34 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
 
                 <div
                   className={clsx(
-                    "flex min-h-0 flex-col justify-start md:min-h-[60vh] lg:min-h-[70vh]",
+                    "flex min-h-0 flex-col justify-start",
                     isFavouriteSpots ? "lg:justify-start" : "md:justify-center",
                   )}
                 >
-                  {isMergedAbout ? (
-                    <div className="space-y-4 sm:space-y-6">
-                      {renderItemList(backgroundItems, { allowDetails })}
-                      {renderLinkBubbles(linkItems)}
-                    </div>
-                  ) : isFavouriteSpots ? (
-                    <FavouriteSpotsPanel items={items} theme={chapter.theme} />
-                  ) : (
-                    <div className="space-y-4 sm:space-y-6">
-                      {renderItemList(timelineItems, {
-                        allowDetails,
-                        linkEntireItem: isOnRepeat || isListening,
-                        showBody: isListening,
-                      })}
-                      {isAbout && renderLinkBubbles(linkTileItems)}
-                    </div>
-                  )}
+                  <div
+                    className={clsx(
+                      "min-h-0 flex-1",
+                      !isFavouriteSpots && "overflow-y-auto pr-2 -mr-2 no-scrollbar",
+                    )}
+                  >
+                    {isMergedAbout ? (
+                      <div className="space-y-4 sm:space-y-6">
+                        {renderItemList(backgroundItems, { allowDetails })}
+                        {renderLinkBubbles(linkItems)}
+                      </div>
+                    ) : isFavouriteSpots ? (
+                      <FavouriteSpotsPanel items={items} theme={chapter.theme} />
+                    ) : (
+                      <div className="space-y-4 sm:space-y-6">
+                        {renderItemList(timelineItems, {
+                          allowDetails,
+                          linkEntireItem: isOnRepeat || isListening,
+                          showBody: isListening,
+                        })}
+                        {isAbout && renderLinkBubbles(linkTileItems)}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="mt-8 hidden items-center justify-between text-xs uppercase tracking-[0.3em] text-[var(--muted)] sm:flex">
                     <span>Chapter {String(index + 1).padStart(2, "0")}</span>
