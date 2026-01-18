@@ -427,8 +427,31 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
     displayChapters[0]?.slug ?? "",
   );
   const [showIndex, setShowIndex] = useState(true);
+  const [isDesktopSnap, setIsDesktopSnap] = useState(true);
   const snapReleaseRef = useRef<number | null>(null);
   const isAutoSnappingRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 769px)");
+    const handleChange = () => setIsDesktopSnap(media.matches);
+
+    handleChange();
+
+    if (media.addEventListener) {
+      media.addEventListener("change", handleChange);
+    } else {
+      media.addListener(handleChange);
+    }
+
+    return () => {
+      if (media.removeEventListener) {
+        media.removeEventListener("change", handleChange);
+      } else {
+        media.removeListener(handleChange);
+      }
+    };
+  }, []);
 
   const getScrollBehavior = useCallback((): ScrollBehavior => {
     if (typeof window === "undefined") return "auto";
@@ -587,6 +610,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
 
   useEffect(() => {
     if (!displayChapters.length) return;
+    if (!isDesktopSnap) return;
 
     const isInteractiveElement = (target: EventTarget | null) => {
       if (!target || !(target instanceof HTMLElement)) return false;
@@ -700,7 +724,43 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
       window.removeEventListener("wheel", handleWheel);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [displayChapters.length, scrollToIndex, stepScroll]);
+  }, [displayChapters.length, isDesktopSnap, scrollToIndex, stepScroll]);
+
+  useEffect(() => {
+    if (!displayChapters.length) return;
+    if (isDesktopSnap) return;
+
+    let lastScrollY = window.scrollY;
+    let ticking = false;
+
+    const update = () => {
+      const currentY = window.scrollY;
+      const delta = currentY - lastScrollY;
+      const nearTop = currentY <= 8;
+
+      if (Math.abs(delta) > 2 || nearTop) {
+        setShowIndex(nearTop || delta < 0);
+        lastScrollY = currentY;
+      } else {
+        lastScrollY = currentY;
+      }
+
+      ticking = false;
+    };
+
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [displayChapters.length, isDesktopSnap]);
 
   const scrollToChapter = (slug: string) => {
     const targetIndex = displayChapters.findIndex(
@@ -786,12 +846,12 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             return (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-3 sm:px-4 sm:py-4"
+                className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-[rgba(255,255,255,0.02)] px-3 py-3 sm:px-4 sm:py-4"
               >
                 <span className="text-[10px] uppercase tracking-[0.3em] text-[var(--muted)] sm:text-[11px]">
                   {String(itemIndex + 1).padStart(2, "0")}
                 </span>
-                <span className="text-[15px] font-semibold text-white sm:text-base">
+                <span className="flex-1 text-[15px] font-semibold text-white sm:text-base">
                   {title}
                 </span>
               </div>
@@ -1027,7 +1087,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               key={chapter.id}
               id={chapter.slug}
               data-chapter={chapter.slug}
-              className="chapter-shell snap-start flex h-[100dvh] items-stretch overflow-hidden"
+              className="chapter-shell snap-start flex h-[100dvh] md:h-[100dvh] min-h-screen md:min-h-0 items-stretch overflow-hidden md:overflow-hidden overflow-visible"
               style={{
                 "--chapter-glow": theme.glow,
                 "--chapter-line": theme.line,
@@ -1048,10 +1108,11 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               )}
               <div
                 className={clsx(
-                  "relative z-10 mx-auto grid h-full min-h-0 w-full max-w-6xl",
-                  "gap-6 px-6 pt-20 pb-12 sm:gap-8 sm:px-10 sm:pt-24 sm:pb-12 md:gap-10 lg:gap-16 lg:px-16 lg:pt-24 lg:pb-12",
-                  layout,
-                )}
+                  "relative z-10 mx-auto grid w-full max-w-6xl",
+                  "h-auto min-h-screen md:h-full md:min-h-0",
+                  "gap-6 px-6 pt-24 pb-16 sm:gap-8 sm:px-10 sm:pt-28 sm:pb-20 md:gap-10 lg:gap-16 lg:px-16 lg:pt-24 lg:pb-12",
+                layout,
+            )}
               >
                 <div className="flex min-h-0 flex-col justify-start space-y-3 sm:space-y-4 md:justify-center md:space-y-6">
                   <div
@@ -1075,9 +1136,9 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
 
                 <div
                   className={clsx(
-                    "flex min-h-0 flex-col justify-start",
-                    isFavouriteSpots ? "lg:justify-start" : "md:justify-center",
-                  )}
+                    "flex flex-col justify-start",
+                    isFavouriteSpots ? "lg:justify-start" : "md:min-h-0 md:justify-center",
+                    )}
                 >
                   <div
                     className={clsx(
