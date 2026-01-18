@@ -578,7 +578,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
           );
         });
 
-        let bestSlug: string | null = null;
+        let bestSlug = "";
         let bestRatio = 0;
 
         ratioByElement.forEach((ratio, element) => {
