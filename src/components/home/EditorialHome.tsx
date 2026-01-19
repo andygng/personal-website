@@ -955,7 +955,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             : "pointer-events-none opacity-0 -translate-y-3",
         )}
       >
-        <div className="no-scrollbar flex flex-wrap items-center justify-start gap-2 overflow-x-hidden px-2 sm:flex-nowrap sm:gap-3 sm:overflow-x-auto">
+        <div className="no-scrollbar flex items-center justify-start gap-2 overflow-x-auto px-2 sm:gap-3">
           {displayChapters.map((chapter, index) => (
             <button
               key={chapter.id}
@@ -970,7 +970,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
             >
               <span
                 className={clsx(
-                  "text-[9px] font-semibold tracking-[0.32em] sm:text-[10px]",
+                  "text-[10px] font-semibold tracking-[0.3em] sm:text-[10px]",
                   activeChapter === chapter.slug
                     ? "text-white"
                     : "text-[var(--muted)] group-hover:text-white",
@@ -980,7 +980,7 @@ export default function EditorialHome({ chapters }: EditorialHomeProps) {
               </span>
               <span
                 className={clsx(
-                  "whitespace-nowrap text-[8px] font-normal tracking-[0.16em] normal-case sm:text-[9px]",
+                  "whitespace-nowrap text-[9px] font-normal tracking-[0.14em] normal-case sm:text-[9px]",
                   activeChapter === chapter.slug
                     ? "text-[rgba(255,255,255,0.7)]"
                     : "text-[rgba(255,255,255,0.45)] group-hover:text-[rgba(255,255,255,0.7)]",
