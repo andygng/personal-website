@@ -55,15 +55,6 @@
 - Required env vars (see `README.md`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`.
 - Keep secrets in `.env.local`; do not commit them.
 
-## Testing Guidelines
-- No automated tests yet; run `npm run lint` before shipping changes.
-- For UI/scroll changes, verify snap behavior, dot nav, and quick-links merge in the browser.
-
-## Commit & PR Guidelines
-- Use concise, imperative commit messages.
-- Include a brief summary and verification notes (lint, manual checks) when opening PRs.
-- Keep scope focused; avoid drive-by refactors.
-
 ## Coding Style & Conventions
 - Use the `@/` alias for imports from `src`.
 - Components with hooks or event handlers must include `"use client"`.
